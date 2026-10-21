@@ -1,0 +1,1685 @@
+<title>양식 되살리기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Myeongjo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 3초 안에 읽히는 작업대 — 맨 위 3단계 흐름(지금 어디인지), 왼쪽 한 가지 할 일, 오른쪽 결과와 내려받기 */
+:root{
+  --paper:#F2F4F3; --sheet:#FFFFFF; --ink:#16202A; --ink-2:#55626D; --rule:#D3DAD9; --rule-2:#E5EAE9;
+  --accent:#1E5C7A; --accent-ink:#FFFFFF; --accent-soft:#E0EDF3; --stamp:#B23A2E; --ok:#2B7A4B; --ok-soft:#E1F1E7; --warn:#9A6A12; --warn-soft:#F6EEDC;
+  --display:"Nanum Myeongjo","Noto Serif KR","AppleMyungjo",serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#10161B; --sheet:#182128; --ink:#E4EAEE; --ink-2:#A1AFB9; --rule:#2C3A44; --rule-2:#223039;
+  --accent:#6FB3D6; --accent-ink:#0B1A22; --accent-soft:#18303D; --stamp:#E07A6E; --ok:#6CC596; --ok-soft:#173226; --warn:#E0B25A; --warn-soft:#33291A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#10161B; --sheet:#182128; --ink:#E4EAEE; --ink-2:#A1AFB9; --rule:#2C3A44; --rule-2:#223039;
+  --accent:#6FB3D6; --accent-ink:#0B1A22; --accent-soft:#18303D; --stamp:#E07A6E; --ok:#6CC596; --ok-soft:#173226; --warn:#E0B25A; --warn-soft:#33291A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;margin:0}
+.wrap{max-width:1320px;margin:0 auto;padding-block:22px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.brand h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,32px);line-height:1.15;margin:0;letter-spacing:-.01em}
+.brand p{margin:0;font-size:16px;color:var(--ink-2)}
+.brand p b{color:var(--ink);font-weight:600}
+.privacy{font-size:12.5px;color:var(--ink-2);display:flex;gap:7px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+
+/* 3단계 흐름 */
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.flow li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 12px;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;min-width:0;position:relative}
+.flow .n{grid-row:span 2;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:16px;border:2px solid var(--rule);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.flow .t{font-weight:600;font-size:15px;line-height:1.2}
+.flow .s{font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.flow li[data-state="now"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.flow li[data-state="now"] .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.flow li[data-state="done"] .n{background:var(--ok);border-color:var(--ok);color:var(--accent-ink)}
+.flow li[data-state="done"] .s{color:var(--ok)}
+.flow li[data-state="warn"] .n{border-color:var(--warn);color:var(--warn)}
+.flow li[data-state="warn"] .s{color:var(--warn)}
+@media (max-width:640px){.flow{grid-template-columns:minmax(0,1fr);gap:6px}.flow li{padding:9px 12px}.flow .n{width:28px;height:28px;font-size:14px}}
+
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.step{display:flex;flex-direction:column;gap:8px}
+.label{font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--ink-2)}
+.drop{position:relative;border:2px dashed var(--rule);border-radius:var(--r);padding:22px 14px;text-align:center;cursor:pointer;background:var(--paper);display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop svg{width:40px;height:40px;color:var(--accent)}
+.drop strong{font-weight:600;font-size:16px}
+.drop small{color:var(--ink-2);font-size:12.5px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop.has{border-style:solid;border-color:var(--accent);background:var(--accent-soft);padding:14px}
+.drop.has svg{width:28px;height:28px}
+.file-name{font-family:var(--mono);font-size:13px;word-break:break-all;color:var(--ink)}
+.route{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;background:var(--paper);border-radius:6px;padding:8px 10px}
+.route b{font-weight:600}
+.route .arrow{color:var(--accent);font-weight:700}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:8px 4px;text-align:center;font-size:14px;cursor:pointer;border-left:1px solid var(--rule);color:var(--ink-2)}
+.seg label:first-of-type{border-left:0}
+.seg input:checked+label{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:-3px}
+.hint{font-size:12.5px;color:var(--ink-2);margin:0}
+.hint code{font-family:var(--mono);font-size:12px}
+details.ai{border:1px solid var(--rule-2);border-radius:6px;padding:9px 12px;background:var(--paper)}
+details.ai summary{cursor:pointer;font-weight:600;font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.ai summary::-webkit-details-marker{display:none}
+details.ai summary::after{content:"▾";color:var(--ink-2);font-size:12px}
+details.ai[open] summary::after{content:"▴"}
+.pill{font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--rule-2);color:var(--ink-2);margin-left:auto;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.ai-body{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12.5px;color:var(--ink-2)}
+input[type=text],input[type=password],select{font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--sheet);color:var(--ink);width:100%;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+.radio-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px}
+.radio-row label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.radio-row label[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+button{font:inherit;cursor:pointer;border-radius:6px}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;padding:13px 16px;font-weight:600;font-size:16px;width:100%}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;max-height:180px;overflow:auto}
+.log:empty{display:none}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:8px;color:var(--ink-2)}
+.log li::before{content:"";width:6px;height:6px;border-radius:50%;margin-top:8px;background:var(--rule)}
+.log li.ok::before{background:var(--ok)} .log li.warn::before{background:var(--warn)} .log li.err::before{background:var(--stamp)} .log li.run::before{background:var(--accent)}
+.log li.err{color:var(--stamp)}
+
+/* 결과 */
+.result{display:flex;flex-direction:column;gap:12px;min-width:0}
+.headline{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.hl-left{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 260px}
+.hl-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.title-line{font-family:var(--display);font-weight:700;font-size:21px;margin:0;line-height:1.25;overflow-wrap:anywhere}
+.badge{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;background:var(--rule-2);color:var(--ink-2)}
+.badge.example{background:var(--warn-soft);color:var(--warn)} .badge.rule{background:var(--accent-soft);color:var(--accent)}
+.badge.ai{background:var(--warn-soft);color:var(--warn)} .badge.unlock{background:var(--ok-soft);color:var(--ok)}
+.stats{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink);font-weight:600;font-size:18px;margin-right:3px}
+.dl{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;flex:0 1 auto}
+.dl input{width:min(230px,100%)}
+.dl .btn{width:auto;padding:11px 18px}
+.pages{display:flex;gap:6px;flex-wrap:wrap}
+.pages button{border:1px solid var(--rule);background:var(--sheet);color:var(--ink-2);padding:3px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.pages button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600}
+.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:640px){.compare{grid-template-columns:minmax(0,1fr)}}
+.pane{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane-h{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;color:var(--ink)}
+.pane-h span:last-child{font-weight:400;color:var(--ink-2);font-size:12px}
+.stage{background:var(--rule-2);border:1px solid var(--rule);border-radius:var(--r);padding:12px;overflow:auto;max-height:80vh}
+.stage canvas,.stage img{display:block;width:100%;height:auto;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.sheet{position:relative;background:#fff;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.18);overflow:hidden;width:100%}
+.sheet .p{position:absolute;white-space:pre;line-height:1;transform-origin:left top}
+.sheet table{position:absolute;border-collapse:collapse;table-layout:fixed}
+.sheet td{padding:0 .4%;overflow:hidden;line-height:1.15;white-space:pre-wrap;word-break:break-all}
+.sheet .m{margin:0;white-space:pre-wrap}
+.placeholder{display:grid;place-items:center;text-align:center;color:var(--ink-2);font-size:13.5px;background:var(--sheet);border:1px dashed var(--rule);aspect-ratio:210/297;padding:24px;border-radius:2px}
+#notices{display:flex;flex-direction:column;gap:8px}
+#notices:empty{display:none}
+.notice{border-left:4px solid var(--warn);background:var(--warn-soft);padding:10px 14px;font-size:14px;border-radius:0 var(--r) var(--r) 0}
+.notice.ok{border-color:var(--ok);background:var(--ok-soft)}
+.notice p{margin:0 0 4px} .notice p:last-child{margin:0}
+.notice code{font-family:var(--mono);font-size:12.5px}
+.kinds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.kinds{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.kinds{grid-template-columns:minmax(0,1fr)}}
+.kind{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kind .k{font-weight:600;font-size:14.5px}
+.kind .v{font-size:13px;color:var(--ink-2)}
+.kind .r{font-size:12px;font-weight:600;align-self:flex-start;padding:1px 8px;border-radius:999px}
+.kind .r.rule{background:var(--accent-soft);color:var(--accent)} .kind .r.ai{background:var(--warn-soft);color:var(--warn)} .kind .r.unlock{background:var(--ok-soft);color:var(--ok)} .kind .r.pdf{background:var(--rule-2);color:var(--ink-2)}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(1turn)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>양식 되살리기</h1>
+      <p>편집 안 되는 양식 → <b>한글에서 고칠 수 있는 hwpx</b></p>
+    </div>
+    <div class="privacy"><span class="dot" aria-hidden="true"></span>파일은 이 브라우저 안에서 처리합니다</div>
+  </header>
+
+  <ol class="flow" aria-label="진행 단계">
+    <li id="f1" data-state="now"><span class="n">1</span><span class="t">파일 올리기</span><span class="s" id="f1s">PDF · hwpx · 사진</span></li>
+    <li id="f2"><span class="n">2</span><span class="t">되살리기</span><span class="s" id="f2s">표와 칸을 원본대로</span></li>
+    <li id="f3"><span class="n">3</span><span class="t">hwpx 내려받기</span><span class="s" id="f3s">한글에서 바로 편집</span></li>
+  </ol>
+
+  <div class="grid">
+    <aside class="panel" aria-label="변환 설정">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".pdf,.hwpx,.hwp,.png,.jpg,.jpeg,.webp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/></svg>
+        <strong id="dropTitle">양식 파일 올리기</strong>
+        <small id="dropSub">끌어다 놓거나 눌러서 선택</small>
+      </label>
+      <div class="route" id="route" hidden></div>
+
+      <div class="step">
+        <span class="label">변환 방식</span>
+        <div class="seg" role="radiogroup" aria-label="변환 방식">
+          <input type="radio" name="mode" id="m-auto" value="auto" checked><label for="m-auto">자동</label>
+          <input type="radio" name="mode" id="m-rule" value="rule"><label for="m-rule">좌표 복원</label>
+          <input type="radio" name="mode" id="m-ai" value="ai"><label for="m-ai">AI 인식</label>
+        </div>
+        <p class="hint" id="modeHint">글자 있는 PDF는 좌표로, 스캔본·사진은 AI로 복원합니다.</p>
+      </div>
+
+      <details class="ai" id="aiBox">
+        <summary>AI 인식 설정 <span class="pill" id="aiState">확인 중</span></summary>
+        <div class="ai-body">
+          <div class="radio-row" role="radiogroup" aria-label="AI 엔진">
+            <label id="engClaudeL" aria-disabled="true"><input type="radio" name="engine" id="engClaude" value="claude" disabled> Claude</label>
+            <label><input type="radio" name="engine" id="engGemini" value="gemini" checked> Gemini</label>
+          </div>
+          <p class="hint" id="claudeHint" hidden>claude.ai에서 열었을 때는 키 없이 Claude를 씁니다.</p>
+          <div class="field" id="gemFields">
+            <label for="gemKey">Gemini API 키</label>
+            <input type="password" id="gemKey" autocomplete="off" spellcheck="false" placeholder="AQ.…">
+            <p class="hint" id="keyHint">요즘 키는 <code>AQ.</code>, 예전 키는 <code>AIza</code>로 시작합니다.</p>
+            <label for="gemModel">모델</label>
+            <select id="gemModel">
+              <option value="gemini-3.8-flash">gemini-3.8-flash (빠름·권장)</option>
+              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (정밀)</option>
+              <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+            </select>
+            <label class="check"><input type="checkbox" id="gemRemember"> 이 브라우저에 키 기억하기</label>
+          </div>
+        </div>
+      </details>
+
+      <button class="btn" id="run" disabled>hwpx로 되살리기</button>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </aside>
+
+    <main class="result" id="result">
+      <div class="headline">
+        <div class="hl-left">
+          <div class="hl-top">
+            <h2 class="title-line" id="resTitle">학부모 상담 신청서</h2>
+            <span class="badge example" id="resBadge">예시</span>
+          </div>
+          <div class="stats" id="stats"></div>
+        </div>
+        <div class="dl">
+          <input type="text" id="outName" value="학부모 상담 신청서" aria-label="저장할 파일 이름">
+          <button class="btn" id="download">hwpx 내려받기</button>
+        </div>
+      </div>
+      <div id="notices"></div>
+      <div class="pages" id="pages" hidden></div>
+      <div class="compare">
+        <section class="pane">
+          <div class="pane-h"><span>원본</span><span id="origMeta"></span></div>
+          <div class="stage" id="origStage"><div class="placeholder">예시 양식입니다.<br>파일을 올리면 원본 페이지가 여기에 나옵니다.</div></div>
+        </section>
+        <section class="pane">
+          <div class="pane-h"><span>hwpx 미리보기</span><span id="recMeta"></span></div>
+          <div class="stage" id="recStage"></div>
+        </section>
+      </div>
+
+      <section class="kinds" aria-label="파일별 처리 방법">
+        <div class="kind"><span class="k">글자 있는 PDF</span><span class="r rule">좌표 복원</span><span class="v">병합·선·점선·대각선·색·자간까지 그대로</span></div>
+        <div class="kind"><span class="k">스캔 PDF · 사진</span><span class="r ai">AI 인식</span><span class="v">AI가 표와 글자를 읽어 다시 짭니다</span></div>
+        <div class="kind"><span class="k">잠긴 hwpx</span><span class="r unlock">잠금 해제</span><span class="v">서식은 그대로, 잠금만 풉니다</span></div>
+        <div class="kind"><span class="k">배포용 문서 · hwp</span><span class="r pdf">PDF로 인쇄 후 올리기</span><span class="v">한글에서 인쇄 → PDF로 저장</span></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+/* ============================================================
+ * 양식 되살리기 엔진
+ *  - PDF(텍스트) 좌표 기반 표·문단 복원
+ *  - AI(이미지) 인식 결과(JSON) → 레이아웃
+ *  - 레이아웃 → hwpx (한글 기본 빈 문서 골격 위에 서식 생성)
+ *  - 읽을 수 있는 hwpx의 편집 잠금 속성 해제
+ * 단위: 레이아웃은 pt(1/72인치, 좌상단 원점), hwpx는 HWPUNIT(1pt = 100)
+ * 브라우저/Node 공용 (pdfjsLib, JSZip 은 인자로 받음)
+ * ============================================================ */
+(function (root) {
+  'use strict';
+
+  const PT2HU = 100;
+  const MM2PT = 72 / 25.4;
+  const LINE_WIDTHS = [0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0];
+  const snapWidth = (mm) => LINE_WIDTHS.reduce((a, b) => (Math.abs(b - mm) < Math.abs(a - mm) ? b : a));
+  /* ───────────── 한글(Hancom) 글자 폭 규칙 ─────────────
+   * 한글 프로그램은 글자를 1/1800인치(4 HWPUNIT) 단위로 배치: em = floor(높이/4),
+   * 글자 폭 = round(설계폭 × em / upem), 자간 = round(폭 × 자간% / 100), 빈칸 = em/2 */
+  const METRICS = {"G":"!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~·…“”‘’「」『』〈〉《》※○●□■△▲◇◆☆★→←↑↓ㆍ×÷±°℃‰—–ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇","F":{"함초롬돋움":{"u":1000,"h":970,"g":[333,339,686,626,853,761,260,313,313,498,548,258,466,270,374,550,550,550,550,550,550,550,550,550,550,312,312,600,534,600,570,865,654,664,633,701,625,609,645,694,317,515,664,584,826,728,676,660,681,683,617,573,702,594,897,607,581,584,338,373,329,562,532,373,563,581,513,578,567,336,563,594,271,268,559,258,919,595,582,552,552,427,513,349,595,469,760,483,466,479,372,342,372,546,294,702,451,453,288,288,500,500,500,500,500,500,500,500,690,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,587,670,782,306,970,892,522,348,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970],"x":{"0":"〪〫","237":"‐","240":"´","258":"ĺļ","268":"ĵ","271":"ìíîïĩīĭįı","288":"‚‛․‧","290":"⁚","291":"⁝⁞","297":"⁏","300":" ‑","304":"′‵","309":"ſ","317":"ÌÍÎÏĨĪĬĮİ","320":"²³¹⁴ⁿ₁₂₃₄","333":"¡","334":"ł","343":"⁅⁆","348":"‾","349":"ţŧ","359":"⁄","361":"ľ","368":"‖","373":"¸","378":"ªť","382":"ŀ","385":"º","398":"‒","419":"‗","427":"ŕŗř","436":"⁑","448":"‡‹›","451":"„","464":"¦","466":"ýÿŷ","478":"­¯","479":"źżž","485":"〿｡｢｣､･ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝﾞﾟﾡﾢﾣﾤﾥﾦﾧﾨﾩﾪﾫﾬﾭﾮﾯﾰﾱﾲﾳﾴﾵﾶﾷﾸﾹﾺﾻﾼﾽﾾￂￃￄￅￆￇￊￋￌￍￎￏￒￓￔￕￖￗￚￛￜ￨￩￪￫￬￭￮","486":"§","488":"‟″‶","489":"ĳ","494":"‸","500":"ð【】〔〕〖〗〘〙〚〛","502":"‼","507":"₰","513":"çćĉċčśŝşš","514":"¢¨","515":"Ĵ","517":"⁁","518":"†","531":"¬","534":"Þ","535":"«","536":"»","538":"⁖","541":"þ","543":"¶⁋","544":"‥‷","546":"₮","549":"⁊","550":"‴","551":"⁎","555":"¥µ","556":"£‽","558":"⁕","559":"ķĸ","563":"àáâãäåāăąĝğġģ","567":"èéêëēĕėęě","570":"¤¿","572":"Ŧ","573":"ŢŤ⁌⁍","576":"₤","581":"ÝŶŸ","582":"òóôõöøōŏő","583":"ß","584":"ĹĻĽĿŁŹŻŽ","586":"•","590":"‣","594":"ĥħ","595":"ñùúûüńņňŋũūŭůűų","598":"₫","603":"⁙₡₢₵","604":"đ","607":"₴","610":"⁒","617":"ŚŜŞŠ","624":"⁘","625":"ÈÉÊËĒĔĖĘĚ⁗","626":"€","630":"₣","631":"₳","633":"ÇĆĈĊČ","645":"ĜĞĠĢ","647":"₪","650":"₲","654":"ÀÁÂÃÄÅĀĂĄ","662":"ď","663":"₭","664":"Ķ","665":"₠","672":"―","676":"ÒÓÔÕÖØŌŎŐ","681":"⁃","683":"ŔŖŘ","684":"⁛","688":"⁈⁓","693":"ŉ","694":"ĤĦ","701":"ÐĎĐ","702":"ÙÚÛÜŨŪŬŮŰŲ","710":"₱","712":"⁉","728":"ÑŃŅŇŊ","734":"₥","740":"₩","760":"ŵ","764":"⁂","769":"⁜","770":"⁔","780":"₦","782":"Ĳ","847":"æ","858":"©®","897":"Ŵ","930":"⁇₯","931":"₨","934":"Œ","937":"₧","941":"‿⁀⁐","950":"œ","956":"‱","967":"Æ","970":"¼½¾ ℉ℓ№℡™ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∁∂∃∄∅∆∇∈∉∊∋∌∍∎∏∐∑−∓∔∕∖∗∘∙√∛∜∝∞∟∠∡∢∣∤∥∦∧∨∩∪∫∬∭∮∯∰∱∲∳∴∵∶∷∸∹∺∻∼∽∾∿≀≁≂≃≄≅≆≇≈≉≊≋≌≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≠≡≢≣≤≥≦≧≨≩≪≫≬≭≮≯≰≱≲≳≴≵≶≷≸≹≺≻≼≽≾≿⊀⊁⊂⊃⊄⊅⊆⊇⊈⊉⊊⊋⊌⊍⊎⊏⊐⊑⊒⊓⊔⊕⊖⊗⊘⊙⊚⊛⊜⊝⊞⊟⊠⊡⊢⊣⊤⊥⊦⊧⊨⊩⊪⊫⊬⊭⊮⊯⊰⊱⊲⊳⊴⊵⊶⊷⊸⊹⊺⊻⊼⊽⊾⊿⋀⋁⋂⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋕⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟⋠⋡⋢⋣⋤⋥⋦⋧⋨⋩⋪⋫⋬⋭⋮⋯⋰⋱⋲⋳⋴⋵⋶⋷⋸⋹⋺⋻⋼⋽⋾⋿⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▢▣▤▥▦▧▨▩▪▫▬▭▮▯▰▱▴▵▶▷▸▹►▻▼▽▾▿◀◁◂◃◄◅◈◉◊◌◍◎◐◑◒◓◔◕◖◗◘◙◚◛◜◝◞◟◠◡◢◣◤◥◦◧◨◩◪◫◬◭◮◯◰◱◲◳◴◵◶◷◸◹◺◻◼◽◾◿☀☁☂☃☄☇☈☉☊☋☌☍☎☏☐☑☒☓☔☕☖☗☘☙☚☛☝☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☰☱☲☳☴☵☶☷☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♡♢♣♤♥♦♧♨♩♪♫♬♭♮♯♰♱♲♳♴♵♶♷♸♹♺♻♼♽♾♿⚀⚁⚂⚃⚄⚅⚆⚇⚈⚉⚊⚋⚌⚍⚎⚏⚐⚑⚒⚓⚔⚕⚖⚗⚘⚙⚚⚛⚜⚠⚡⚢⚣⚤⚥⚦⚧⚨⚩⚪⚫⚬⚭⚮⚯⚰⚱⚲✁✂✃✄✆✇✈✉✌✍✎✏✐✑✒✓✔✕✖✗✘✙✚✛✜✝✞✟✠✡✢✣✤✥✦✧✩✪✫✬✭✮✯✰✱✲✳✴✵✶✷✸✹✺✻✼✽✾✿❀❁❂❃❄❅❆❇❈❉❊❋❍❏❐❑❒❖❘❙❚❛❜❝❞❡❢❣❤❥❦❧❨❩❪❫❬❭❮❯❰❱❲❳❴❵❶❷❸❹❺❻❼❽❾❿➀➁➂➃➄➅➆➇➈➉➊➋➌➍➎➏➐➑➒➓➔➘➙➚➛➜➝➞➟➠➡➢➣➤➥➦➧➨➩➪➫➬➭➮➯➱➲➳➴➵➶➷➸➹➺➻➼➽➾　、。〃〄々〆〇〒〓〜〝〞〟〠〡〢〣〤〥〦〧〨〩〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～｟｠ﾠ￠￡￢￣￤￥￦","1012":"☜☞"}},"함초롬바탕":{"u":1000,"h":970,"g":[320,320,610,610,830,724,320,320,320,550,550,320,550,320,550,550,550,550,550,550,550,550,550,550,550,320,320,550,550,550,550,830,706,605,685,719,627,617,683,734,305,315,660,605,839,734,732,603,705,660,627,664,731,706,910,705,705,626,320,550,320,550,550,320,569,597,552,597,536,356,562,635,287,288,582,287,907,635,588,597,579,478,496,356,635,563,720,542,543,486,320,320,320,550,320,960,480,480,320,320,500,500,500,500,500,500,500,500,770,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,617,678,798,291,970,988,875,625,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970,970],"x":{"0":"〪〫","286":"¦","287":"ìíîïĩīĭįıĺļ","288":"ĵ","289":"․‧","290":"⁚","291":"‚‛⁏⁝⁞","296":"´","300":" ","305":"ÌÍÎÏĨĪĬĮİ","315":"Ĵ","320":"¡²³¹⁴ⁿ₁₂₃₄","335":"‖′‵","336":"ſ","356":"ţŧ","364":"ł","369":"‣","374":"¨","396":"º‹›","399":"•","411":"„‟","422":"ľ","426":"ŀ","433":"ª","434":"ť","438":"‡","440":"«»","447":"‼","456":"­⁃","472":"⁅⁆","474":"″‶","478":"ŕŗř","480":"‽","485":"〿｡｢｣､･ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝﾞﾟﾡﾢﾣﾤﾥﾦﾧﾨﾩﾪﾫﾬﾭﾮﾯﾰﾱﾲﾳﾴﾵﾶﾷﾸﾹﾺﾻﾼﾽﾾￂￃￄￅￆￇￊￋￌￍￎￏￒￓￔￕￖￗￚￛￜ￨￩￪￫￬￭￮","486":"źżž⁎⁑","496":"śŝşš","498":"§","500":"【】〔〕〖〗〘〙〚〛","511":"₫","517":"₰","525":"‸","528":"‐‑","531":"⁊","536":"èéêëēĕėęě","538":"⁖","543":"ýÿŷ","544":"ß","550":"µ¿","552":"çćĉċč","555":"⁒","558":"†⁕","560":"ŋ","561":"¢","562":"ĝğġģ","564":"¬","568":"£","569":"àáâãäåāăą","570":"ð₤","573":"⁗","574":"ĳ","575":"¯Þ","579":"‗","580":"ķ","584":"Ĳ","588":"òóôõöōŏő","594":"‾","595":"₦","601":"₠₪","603":"⁙","605":"ĹĻĽĿ","606":"¶₲","608":"þ‴‷₵","610":"¤","612":"¸","613":"₴","615":"ĸ","624":"⁈⁘","625":"‒","626":"ŹŻŽ","627":"ÈÉÊËĒĔĖĘĚŚŜŞŠ","632":"₣","634":"⁉","635":"ñùúûüĥńņňũūŭůűų⁄","637":"₱","638":"Ł","640":"đ‥","642":"Ķ","646":"⁋⁌⁍","650":"₭","654":"₮","656":"€","660":"ŔŖŘ","664":"ŢŤŦ","665":"ħ₥","666":"⁁₡₢","683":"ĜĞĠĢ","684":"ď⁛","685":"ÇøĆĈĊČ","688":"⁓","696":"Ø","705":"ÝŉŶŸ","706":"ÀÁÂÃÄÅĀĂĄ","707":"¥","716":"Ŋ","719":"Ď","720":"ŵ","731":"ÙÚÛÜŨŪŬŮŰŲ","732":"ÒÓÔÕÖŌŎŐ","734":"ÑĤŃŅŇ","762":"Ħ","768":"Ð","769":"Đ⁜₳","770":"‿⁀⁔","794":"₩","799":"⁐","800":"©®","810":"₨","875":"―","877":"œ","878":"⁇","891":"æ","909":"⁂","910":"Ŵ","921":"Œ","956":"‱","957":"₧","959":"Æ","970":"¼½¾ ₯℉ℓ№℡™ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∁∂∃∄∅∆∇∈∉∊∋∌∍∎∏∐∑−∓∔∕∖∗∘∙√∛∜∝∞∟∠∡∢∣∤∥∦∧∨∩∪∫∬∭∮∯∰∱∲∳∴∵∶∷∸∹∺∻∼∽∾∿≀≁≂≃≄≅≆≇≈≉≊≋≌≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≠≡≢≣≤≥≦≧≨≩≪≫≬≭≮≯≰≱≲≳≴≵≶≷≸≹≺≻≼≽≾≿⊀⊁⊂⊃⊄⊅⊆⊇⊈⊉⊊⊋⊌⊍⊎⊏⊐⊑⊒⊓⊔⊕⊖⊗⊘⊙⊚⊛⊜⊝⊞⊟⊠⊡⊢⊣⊤⊥⊦⊧⊨⊩⊪⊫⊬⊭⊮⊯⊰⊱⊲⊳⊴⊵⊶⊷⊸⊹⊺⊻⊼⊽⊾⊿⋀⋁⋂⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋕⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟⋠⋡⋢⋣⋤⋥⋦⋧⋨⋩⋪⋫⋬⋭⋮⋯⋰⋱⋲⋳⋴⋵⋶⋷⋸⋹⋺⋻⋼⋽⋾⋿⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▢▣▤▥▦▧▨▩▪▫▬▭▮▯▰▱▴▵▶▷▸▹►▻▼▽▾▿◀◁◂◃◄◅◈◉◊◌◍◎◐◑◒◓◔◕◖◗◘◙◚◛◜◝◞◟◠◡◢◣◤◥◦◧◨◩◪◫◬◭◮◯◰◱◲◳◴◵◶◷◸◹◺◻◼◽◾◿☀☁☂☃☄☇☈☉☊☋☌☍☎☏☐☑☒☓☔☕☖☗☘☙☚☛☝☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☰☱☲☳☴☵☶☷☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♡♢♣♤♥♦♧♨♩♪♫♬♭♮♯♰♱♲♳♴♵♶♷♸♹♺♻♼♽♾♿⚀⚁⚂⚃⚄⚅⚆⚇⚈⚉⚊⚋⚌⚍⚎⚏⚐⚑⚒⚓⚔⚕⚖⚗⚘⚙⚚⚛⚜⚠⚡⚢⚣⚤⚥⚦⚧⚨⚩⚪⚫⚬⚭⚮⚯⚰⚱⚲✁✂✃✄✆✇✈✉✌✍✎✏✐✑✒✓✔✕✖✗✘✙✚✛✜✝✞✟✠✡✢✣✤✥✦✧✩✪✫✬✭✮✯✰✱✲✳✴✵✶✷✸✹✺✻✼✽✾✿❀❁❂❃❄❅❆❇❈❉❊❋❍❏❐❑❒❖❘❙❚❛❜❝❞❡❢❣❤❥❦❧❨❩❪❫❬❭❮❯❰❱❲❳❴❵❶❷❸❹❺❻❼❽❾❿➀➁➂➃➄➅➆➇➈➉➊➋➌➍➎➏➐➑➒➓➔➘➙➚➛➜➝➞➟➠➡➢➣➤➥➦➧➨➩➪➫➬➭➮➯➱➲➳➴➵➶➷➸➹➺➻➼➽➾　、。〃〄々〆〇〒〓〜〝〞〟〠〡〢〣〤〥〦〧〨〩〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～｟｠ﾠ￠￡￢￣￤￥￦","1012":"☜☞"}},"맑은 고딕":{"u":2048,"h":2048,"g":[592,809,1242,1128,1713,1675,475,624,624,870,1435,448,840,448,811,1128,1128,1128,1128,1128,1128,1128,1128,1128,1128,448,448,1435,1435,1435,942,2006,1348,1195,1300,1469,1059,1021,1437,1484,553,737,1209,983,1878,1567,1584,1169,1584,1249,1112,1093,1439,1299,1953,1231,1154,1193,624,1564,624,1435,872,557,1065,1230,968,1233,1096,648,1233,1185,504,504,1036,504,1802,1184,1227,1230,1233,724,887,706,1184,998,1508,952,1009,946,624,490,624,1435,448,1515,776,776,473,473,1169,1169,1059,1059,1110,1110,1221,1221,1638,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,1946,1946,1946,1946,2048,1435,1435,1435,792,1946,2536,2101,1051,1946,1946,1946,1946,1946,1946,1946,1946,1946,1946,0,0,1946,1946,1946,1946,1946,1946,1946,1946,1946,1946,0,0,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,0,0,0,0,0,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,2048,0,0,0,0,0],"x":{"430":"¸","473":"‚′","490":"¦","499":"ł","504":"ìíîïı","553":"ÌÍÎÏ","590":"´","592":"¡","645":"∙","660":"‹›","679":"ℓ","695":"ŀ","706":"ŧ","720":" ","729":"⁴","732":"¹","764":"²³","776":"„″","783":"†‡","788":"₁₂₃₄","816":"ⁿ","821":"ª","840":"­","855":"•","864":"¨","887":"š","895":"‥","901":"¯","902":"º","930":"₮","937":"§","942":"¿","946":"ž","954":"₰","956":"¶","968":"ç","983":"ĿŁ","999":"〔〕","1006":"ĳ","1009":"ýÿ","1021":"₣","1024":"ﾠﾡﾢﾣﾤﾥﾦﾧﾨﾩﾪﾫﾬﾭﾮﾯﾰﾱﾲﾳﾴﾵﾶﾷﾸﾹﾺﾻﾼﾽﾾￂￃￄￅￆￇￊￋￌￍￎￏￒￓￔￕￖￗￚￛￜ","1031":"₭","1036":"ĸ","1053":"«»","1059":"ÈÉÊË","1061":"【】","1065":"àáâãäå","1093":"Ŧ","1096":"èéêë","1102":"♩","1107":"₪","1112":"Š","1116":"∮","1119":"∂","1122":"∃","1128":"¢£¥₤","1129":"€∫","1131":"ß","1132":"₡₢","1154":"ÝŸ","1168":"¤","1169":"Þ","1170":"ð","1174":"♭","1183":"ħ","1184":"ñùúûüŋ‼","1193":"Ž","1208":"µ","1217":"◌","1227":"òóôõöø","1228":"₫","1229":"₱","1230":"þ","1231":"đ","1262":"ŉ","1280":"♀","1292":"∑","1300":"Ç","1304":"₠","1322":"Ĳ","1348":"ÀÁÂÃÄÅ","1350":"₦","1365":"√","1366":"∠∴∵","1401":"∥∧∨∼∽≒≡","1409":"♪","1425":"Å∀","1435":"¬","1436":"≠≤≥","1439":"ÙÚÛÜ","1460":"∇","1464":"♂","1469":"Ð","1484":"Ħ","1534":"⁈⁉","1564":"₩","1567":"ÑŊ","1580":"∏","1584":"ÒÓÔÕÖØ","1585":"Ω","1625":"™","1716":"∝","1718":"∞","1748":"æ","1781":"₨","1797":"Æ","1802":"₥","1870":"⅞","1872":"©®","1876":"¼","1884":"⁇","1909":"♬","1931":"⅛","1945":"¾","1946":"℉℡⅓⅔↔↕↖↗↘↙⇒⇔∈∋∩∪∬≪≫⊂⊃⊆⊇⊙⊥⌒","1950":"½œ","1954":"Œ","1982":"☃","2010":"⅜","2012":"⅝","2048":"―⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▶▷▼▽◀◁◈◎◐◑☎☏☜☞♠♡♣♤♥♧♨　、。〃〓㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦","2306":"₧","2347":"№","2354":"₯"}},"굴림":{"u":1024,"h":1024,"g":[341,384,768,612,896,704,290,384,384,512,640,342,640,342,427,588,588,588,588,588,588,588,588,588,588,342,342,640,640,640,555,1024,661,693,735,739,640,610,788,748,276,512,650,556,832,716,788,652,792,682,648,596,728,614,916,640,640,640,512,939,512,555,512,341,576,620,586,620,581,350,620,585,247,247,512,237,882,594,620,620,620,341,538,321,584,512,768,512,512,512,512,512,512,811,384,1024,512,512,341,341,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,911,911,1024,936,1024,1024,1024,1024,1024,1024,768,768,1024,853,853,853,384,1024,1024,1024,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"256":"¦ìíîïīĭįıĵĺļľł∙","293":"ĩ","299":"ÌÍÎÏĨĪĬĮİ","320":"ŀ","341":"¸ŕŗřţťŧ‚‛","384":"²³´¹ſ•′‹›∫▪▫◦","427":"¡⁄∕","448":"ªºⁿ","512":" ¨«­¯»ýÿŷźżž‗„″‾ℓ","555":"Ĵķĸśŝşš","562":"√","576":"¤§¶¼½¾†‡⅛⅜⅝⅞∂","596":"Þ","597":"¢µ¿àáâãäåçèéêëùúûüāăąćĉċčēĕėęěĥħĳĹĻĽĿŁŢŤŦũūŭůűų","609":"£₣₤","628":"∆","640":"¥ÝßðñòóôõöøþďđĝğġģńņňŋōŏőŶŸŹŻŽ‼♀♂","683":"ÀÁÂÃÄÅÈÉÊËĀĂĄĒĔĖĘĚĶŚŜŞŠ₧","704":"―∏♪","720":"¬","725":"ŔŖŘ","736":"∩","738":"ŉ","768":"ÇÐÑÙÚÛÜĆĈĊČĎĐĤĦĲŃŅŇŊŨŪŬŮŰŲŵ€Ω↕►◄♠","781":"♫","793":"◊♦","802":"©®","806":"æ","811":"ÒÓÔÕÖØŌŎŐ","812":"♥","832":"∑","853":"ĜĞĠĢ−≈≠≡≤≥","864":"♣","896":"œ","935":"∞","936":"▼","938":"☼","939":"Ŵ₩","960":"Æ","995":"☃","1006":"∟","1024":"Œ‥⁴₁₂₃₄℉№℡™Å⅓⅔↔↖↗↘↙⇒⇔∀∃∇∈∋∝∠∥∧∨∪∬∮∴∵∼∽≒≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▬▶▷▽◀◁◈◎◐◑◘◙☎☏☜☞☺☻♡♤♧♨♩♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"돋움":{"u":1024,"h":1024,"g":[342,427,640,512,939,726,298,384,384,597,596,384,604,384,427,597,597,597,597,597,597,597,597,597,597,348,348,640,598,640,597,1024,683,696,738,742,644,614,768,740,264,496,672,554,828,714,768,658,768,684,654,597,742,616,914,618,616,618,512,981,512,640,512,340,597,614,572,618,572,352,612,574,234,234,522,236,939,582,614,616,618,328,528,320,568,486,742,490,492,494,512,512,512,810,340,1024,469,469,299,299,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,960,911,911,1024,936,1024,1024,1024,1024,1024,1024,768,768,1024,853,853,853,415,1024,1024,1024,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"256":"¦ìíîïīĭĮįıĵĺļľł","299":"ÌÍÎĨĩĪĬİ‚‛∙","302":"Ï","320":"ŀ","330":"²³","341":"´¸ŕŗřţťŧ","344":"′","384":"¹ºſ•‹›∫▪▫◦","413":"ª","427":"¡","469":"„","512":" ¨«­¯»¼½¾ýÿĳŷźżž‗‾⁄ⁿ₧ℓ∕","513":"√","555":"Ĵķśŝşš","575":"⅜","576":"£¤§¶ĸ†‡⅛⅝⅞∂","577":"″","597":"¢µ¿àáâãäåçèéêëùúûüāăąćĉċčēĕėęěĥħĹĻĽĿŁŢŤŦũūŭůűų","609":"₣₤","628":"∆","640":"¥ÝßðñòóôõöøþďđĝğġģńņňŋōŏőŶŸŹŻŽ‼♀♂","683":"ÀÁÂÃÄÅÈÉÊËÞĀĂĄĒĔĖĘĚŚŜŞŠ","704":"ŉ―∏♪","720":"¬","725":"ĶŔŖŘ","736":"∩","768":"ÇÑÙÚÛÜĆĈĊČĎĤĦĲŃŅŇŨŪŬŮŰŲŵ€Ω↕►◄♠","769":"Ŋ","770":"ÐĐ","781":"♫","793":"◊♦","802":"©®","811":"ÒÓÔÕÖØŌŎŐ","812":"♥","832":"æ∑","853":"ĜĞĠĢ−≈≠≡≤≥","864":"♣","896":"œ","933":"∞","936":"▼","938":"☼","939":"Ŵ","957":"Œ","960":"Æ","981":"₩","995":"☃","1006":"∟","1024":"‥⁴₁₂₃₄℉№℡™Å⅓⅔↔↖↗↘↙⇒⇔∀∃∇∈∋∝∠∥∧∨∪∬∮∴∵∼∽≒≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▬▶▷▽◀◁◈◎◐◑◘◙☎☏☜☞☺☻♡♤♧♨♩♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"바탕":{"u":1024,"h":1024,"g":[320,427,638,574,876,853,256,386,386,512,853,299,640,299,384,610,610,610,610,610,610,610,610,610,610,341,341,640,640,640,512,1024,754,725,725,752,688,660,758,784,334,436,764,654,916,794,754,670,756,688,640,768,794,768,968,704,702,640,512,1024,512,512,512,597,555,590,555,590,590,374,597,588,296,299,586,299,866,584,597,588,588,450,532,368,580,586,828,620,602,512,512,597,512,768,341,1024,512,512,299,299,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,911,911,1024,936,1024,1024,1024,1024,1024,1024,768,768,1024,832,832,832,448,1024,1024,1024,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"256":"¦","271":"′∙","299":"ìíîïĩīĭįıĺļľł‚‛","319":"ĵ","339":"‹›","341":"´¸∕","352":"ŀ","368":"²³","384":"­¯¹ÌÍÎÏĨĪĬĮİţťŧſ•▪▫◦","401":"″","427":"¡ŕŗř","429":"ℓ","443":"ⁿ","469":"Ĵźżž","480":"ªº","497":"∫","512":" ¢£¤§¨«»¿àáâãäåāăąćĉċčśŝşš‗„‾⁄∂","532":"ç","543":"⅝","555":"µèéêëðñòóôõöøùúûüþďđēĕėęěĝğġģĥħķĸńņňŋōŏőũūŭůűų","562":"₤√","576":"¼½¾ĳ⅛⅜⅞","597":"ýÿŷ","601":"‡","608":"†","628":"∆","639":"♂","640":"¶ßĹĻĽĿŁŚŜŞŠŹŻŽ‼₣","674":"₧","683":"¥ÈÉÊËÝÞĆĈĊČĒĔĖĘĚŔŖŘŶŸ","684":"∩","690":"Ç€","704":"ŉ―♪","717":"∏","725":"ÐÒÓÔÕÖØĎĐĜĞĠĢŌŎŐ","736":"Ω","747":"♀","768":"ÀÁÂÃÄÅÑÙÚÛÜĀĂĤĦĲĶŃŅŇŊŢŤŦŨŪŬŮŰŲ↕►◄♠","769":"Ą","781":"♫","786":"≈","793":"◊♦","802":"©®","804":"¬","811":"ŵ","812":"♥","832":"∑−≠≡≤≥","864":"♣","865":"æ","870":"œ","933":"∞","936":"▼","938":"☼","960":"Œ","974":"∟","981":"Ŵ","1024":"Æ‥⁴₁₂₃₄₩℉№℡™Å⅓⅔↔↖↗↘↙⇒⇔∀∃∇∈∋∝∠∥∧∨∪∬∮∴∵∼∽≒≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▬▶▷▽◀◁◈◎◐◑◘◙☎☏☜☞☺☻♡♤♧♨♩♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"HY헤드라인M":{"u":1024,"h":1024,"g":[256,384,853,597,810,640,213,298,298,341,597,213,597,213,384,597,597,597,597,597,597,597,597,597,597,256,256,469,597,469,597,853,597,640,640,640,469,469,640,640,256,341,597,426,810,597,597,554,597,597,597,512,640,640,938,597,554,469,341,384,341,554,512,0,597,597,597,597,640,384,597,597,256,298,554,256,853,597,640,597,597,426,554,384,597,554,810,512,512,426,426,298,426,725,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"512":" ¢£¥¦©«¬®¯µ»ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ","993":"✀","1024":"¡¤§¨ª­²³´¶¸¹º¼½¾¿ÆÐØÞßæðøþđĦħıĲĳĸĿŀŁłŉŊŋŒœŦŧ―†‡‥′″⁴ⁿ₁₂₃₄℉ℓ№℡™ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∂∃∇∈∋∏∑√∝∞∠∥∧∨∩∪∫∬∮∴∵∼∽≒≠≡≤≥≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▶▷▼▽◀◁◈◎◐◑☎☏☜☞♀♂♠♡♣♤♥♧♨♩♪♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"HY중고딕":{"u":1024,"h":1024,"g":[426,426,853,682,938,768,256,426,426,597,853,384,853,384,384,597,597,597,597,597,597,597,597,597,597,426,426,554,853,554,597,1024,682,725,768,768,682,640,853,768,298,554,725,597,896,768,810,682,810,725,682,597,768,640,938,640,640,640,426,384,426,512,512,256,597,640,597,640,597,384,640,597,256,256,554,256,938,640,640,640,640,341,554,341,597,512,768,512,512,512,512,512,512,768,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"512":" ¢£¥¦©«¬®¯µ»ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ","1024":"¡¤§¨ª­²³´¶¸¹º¼½¾¿ÆÐØÞßæðøþđĦħıĲĳĸĿŀŁłŉŊŋŒœŦŧ―†‡‥′″⁴ⁿ₁₂₃₄℉ℓ№℡™ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∂∃∇∈∋∏∑√∝∞∠∥∧∨∩∪∫∬∮∴∵∼∽≒≠≡≤≥≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▶▷▼▽◀◁◈◎◐◑☎☏☜☞♀♂♠♡♣♤♥♧♨♩♪♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"궁서":{"u":1024,"h":1024,"g":[427,427,640,555,683,597,299,427,427,512,640,341,852,341,384,597,597,597,597,597,597,597,597,597,597,341,341,725,640,725,597,753,704,700,704,695,673,672,717,719,474,576,704,640,832,729,689,667,719,719,634,664,730,699,812,682,684,650,512,768,512,576,512,335,628,653,630,653,625,512,653,666,481,483,657,512,896,662,673,671,671,597,597,576,661,661,768,628,663,565,512,512,512,811,340,1024,512,512,341,341,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,911,911,1024,936,1024,1024,1024,1024,1024,1024,768,768,1024,853,853,853,448,1024,1024,1024,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"256":"¦∙","341":"¸‚‛′","384":"´•‹›∕▪▫◦","427":"¡⁄","448":"­¯","512":" ¤¨ª²³¹º¼½¾ĵſ‗„‾ⁿ⅛⅜⅝⅞","538":"″ℓ","550":"«»","555":"ìíîïĩīĭįıĺļľŀł","563":"√","576":"†‡","583":"∫","597":"¿ÌÍÎÏĨĪĬĮİŕŗřśŝşšţťŧźżž","608":"∂","611":"‼","640":"¢§çèéêëðćĉċčēĕėęěĴ♀♂","683":"ÞàáâãäåñòóôõöøùúûüýþÿāăąďđĝğġģĥħķĸĹĻĽĿŁńņňŉŋōŏőũūŭůűųŷ₧","694":"₣","704":"£¬µ¶―₤∆♪","725":"ÀÁÂÃÄÅÇÈÉÊËÐÒÓÔÕÖØÝĀĂĄĆĈĊČĎĐĒĔĖĘĚŌŎŐŚŜŞŠŢŤŦŶŸŹŻŽ€","736":"∩","742":"¥","768":"ÑßĜĞĠĢĤĦĶŃŅŇŊŔŖŘ₩↕≈►◄♠","781":"♫","793":"◊♦","802":"©®","811":"ÙÚÛÜŨŪŬŮŰŲŵ","812":"♥","818":"∏","832":"æΩ","853":"Ŵ−≠≡≤≥","864":"♣","919":"∑","923":"ĳ","935":"∞","936":"▼","938":"☼","971":"œ","983":"№","1024":"ÆĲŒ‥⁴₁₂₃₄℉℡™Å⅓⅔↔↖↗↘↙⇒⇔∀∃∇∈∋∝∟∠∥∧∨∪∬∮∴∵∼∽≒≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▬▶▷▽◀◁◈◎◐◑◘◙☎☏☜☞☺☻♡♤♧♨♩♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"굴림체":{"u":1024,"h":1024,"g":[512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,512,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"512":" ¢£¥¦©«¬¯µ»ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿĀāĂăĄąĆćĈĉĊċČčĎďĐĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĨĩĪīĬĭĮįİĴĵĶķĹĺĻļĽľŃńŅņŇňŌōŎŏŐőŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ‗‚‛„•‹›‼‾⁄₣₤₧₩∆−∕∙∟≈▪▫▬►◄◊◘◙◦☺☻☼♦♫","993":"✀","1024":"¡¤§¨ª­®²³´¶¸¹º¼½¾¿ÆÐØÞßæðøþđĦħıĲĳĸĿŀŁłŉŊŋŒœŦŧ―†‡‥′″⁴ⁿ₁₂₃₄€℉ℓ№℡™ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∂∃∇∈∋∏∑√∝∞∠∥∧∨∩∪∫∬∮∴∵∼∽≒≠≡≤≥≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▶▷▼▽◀◁◈◎◐◑☎☏☜☞♀♂♠♡♣♤♥♧♨♩♪♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"바탕체":{"u":1024,"h":1024,"g":[512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,512,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"512":" ¢£¥¦©«¬¯µ»ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿĀāĂăĄąĆćĈĉĊċČčĎďĐĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĨĩĪīĬĭĮįİĴĵĶķĹĺĻļĽľŃńŅņŇňŌōŎŏŐőŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ‗‚‛„•‹›‼‾⁄₣₤₧₩∆−∕∙∟≈▪▫▬►◄◊◘◙◦☺☻☼♦♫","993":"✀","1024":"¡¤§¨ª­®²³´¶¸¹º¼½¾¿ÆÐØÞßæðøþđĦħıĲĳĸĿŀŁłŉŊŋŒœŦŧ―†‡‥′″⁴ⁿ₁₂₃₄€℉ℓ№℡™ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∂∃∇∈∋∏∑√∝∞∠∥∧∨∩∪∫∬∮∴∵∼∽≒≠≡≤≥≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▶▷▼▽◀◁◈◎◐◑☎☏☜☞♀♂♠♡♣♤♥♧♨♩♪♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"돋움체":{"u":1024,"h":1024,"g":[512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,512,512,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,0,0,0,0,0],"x":{"512":" ¢£¥¦©«¬¯µ»ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿĀāĂăĄąĆćĈĉĊċČčĎďĐĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĨĩĪīĬĭĮįİĴĵĶķĹĺĻļĽľŃńŅņŇňŌōŎŏŐőŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ‗‚‛„•‹›‼‾⁄₣₤₧₩∆−∕∙∟≈▪▫▬►◄◊◘◙◦☺☻☼♦♫","993":"✀","1024":"¡¤§¨ª­®²³´¶¸¹º¼½¾¿ÆÐØÞßæðøþđĦħıĲĳĸĿŀŁłŉŊŋŒœŦŧ―†‡‥′″⁴ⁿ₁₂₃₄€℉ℓ№℡™ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∂∃∇∈∋∏∑√∝∞∠∥∧∨∩∪∫∬∮∴∵∼∽≒≠≡≤≥≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▶▷▼▽◀◁◈◎◐◑☎☏☜☞♀♂♠♡♣♤♥♧♨♩♪♬♭　、。〃【】〓〔〕㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦"}},"한컴 고딕":{"u":1000,"h":932,"g":[446,297,583,583,892,892,297,446,446,446,583,297,583,297,446,583,583,583,583,583,583,583,583,583,583,297,297,446,583,446,669,1052,644,627,639,721,596,554,710,718,247,410,626,529,884,710,752,586,752,610,592,621,696,635,961,617,611,594,446,961,446,434,446,297,560,588,490,588,559,340,588,592,244,301,530,244,892,592,577,588,588,383,475,357,592,530,788,528,530,473,446,446,446,669,446,892,446,446,303,303,486,486,486,486,486,486,486,486,932,932,932,932,932,932,932,932,932,932,932,932,932,932,932,932,800,800,800,446,932,892,0,0,932,932,932,932,932,932,932,932,932,932,0,0,932,932,932,932,932,932,932,932,932,932,0,0,932,932,932,932,932,932,932,932,932,932,932,932,932,932,932,0,0,0,0,0,932,932,932,932,932,932,932,932,932,932,932,932,932,932,932,0,0,0,0,0],"x":{"260":"²³¹","300":"´","378":"ª","385":"º","436":"⁑","446":"¡§¸","478":"­","486":"′″⁴ⁿ₁₂₃₄∂、。【】〔〕","586":"•","669":"¿","672":"―","680":"€","800":"¨¶øþ","892":"¤®¼½¾ÆÐØÞßæðŒœ†‡™","932":"đĦħıĲĳĸĿŀŁłŉŊŋŦŧ‥℉ℓ№℡ΩÅ⅓⅔⅛⅜⅝⅞↔↕↖↗↘↙⇒⇔∀∃∇∈∋∏∑√∝∞∠∥∧∨∩∪∫∬∮∴∵∼∽≒≠≡≤≥≪≫⊂⊃⊆⊇⊙⊥⌒⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋▒▣▤▥▦▧▨▩▶▷▼▽◀◁◈◎◐◑☎☏☜☞♀♂♠♡♣♤♥♧♨♩♪♬♭　〃〓㈀㈁㈂㈃㈄㈅㈆㈇㈈㈉㈊㈋㈌㈍㈎㈏㈐㈑㈒㈓㈔㈕㈖㈗㈘㈙㈚㈛㈜㉠㉡㉢㉣㉤㉥㉦㉧㉨㉩㉪㉫㉬㉭㉮㉯㉰㉱㉲㉳㉴㉵㉶㉷㉸㉹㉺㉻㉿㎀㎁㎂㎃㎄㎈㎉㎊㎋㎌㎍㎎㎏㎐㎑㎒㎓㎔㎕㎖㎗㎘㎙㎚㎛㎜㎝㎞㎟㎠㎡㎢㎣㎤㎥㎦㎧㎨㎩㎪㎫㎬㎭㎮㎯㎰㎱㎲㎳㎴㎵㎶㎷㎸㎹㎺㎻㎼㎽㎾㎿㏀㏁㏂㏃㏄㏅㏆㏇㏈㏉㏊㏏㏐㏓㏖㏘㏛㏜㏝！＂＃＄％＆＇（）＊＋，－．／０１２３４５６７８９：；＜＝＞？＠ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ［＼］＾＿｀ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ｛｜｝～￠￡￢￣￥￦","970":"◉◯☐☑❍"}}}};
+  const ADV_EM = { hangul: 1.0, wide: 1.0, upper: 0.7, lower: 0.52, digit: 0.55, space: 0.32, punct: 0.42, other: 0.62 };
+  const faceCache = new Map();
+  function faceTable(face) {
+    if (!METRICS) return null;
+    if (faceCache.has(face)) return faceCache.get(face);
+    const f = METRICS.F[face];
+    let t = null;
+    if (f) {
+      const map = new Map();
+      [...METRICS.G].forEach((ch, i) => map.set(ch, f.g[i]));
+      for (const [u, chars] of Object.entries(f.x)) for (const ch of chars) if (!map.has(ch)) map.set(ch, +u);
+      t = { u: f.u, h: f.h, map };
+    }
+    faceCache.set(face, t);
+    return t;
+  }
+  function classOf(ch) {
+    const c = ch.codePointAt(0);
+    if (ch === ' ' || ch === '\t') return 'space';
+    if ((c >= 0xAC00 && c <= 0xD7A3) || (c >= 0x1100 && c <= 0x11FF) || (c >= 0x3130 && c <= 0x318F)) return 'hangul';
+    if (c >= 0x4E00 && c <= 0x9FFF) return 'wide';
+    if (/[A-Z]/.test(ch)) return 'upper';
+    if (/[a-z]/.test(ch)) return 'lower';
+    if (/[0-9]/.test(ch)) return 'digit';
+    if (/[!-/:-@[-`{-~]/.test(ch)) return 'punct';
+    if ((c >= 0x2000 && c <= 0x2BFF) || (c >= 0x3000 && c <= 0x33FF) || (c >= 0xFF00 && c <= 0xFFEF)) return 'wide';
+    return 'other';
+  }
+  const roundAway = (v) => (v >= 0 ? Math.floor(v + 0.5) : -Math.floor(-v + 0.5));
+  /** 한 줄 글자 폭(HWPUNIT) — runs: [{t,size,font}], sp: 자간 % */
+  function hwpWidth(runs, sp) {
+    let w = 0;
+    for (const r of runs) {
+      const height = clamp(Math.round((r.size || 10) * 2) * 50, 100, 409600);
+      const em = Math.floor(height / 4);
+      const ft = faceTable(r.font || '함초롬돋움') || faceTable('함초롬돋움');
+      for (const ch of r.t) {
+        let adv;
+        if (ch === ' ' || ch === '\u00a0') adv = Math.floor(em / 2);
+        else if (ft) {
+          const cls = classOf(ch);
+          const units = cls === 'hangul' ? ft.h : ft.map.get(ch);
+          adv = units !== undefined ? Math.floor((units * em) / ft.u + 0.5) : null;
+          if (adv === null) { w += ADV_EM[cls] * height * (1 + sp / 100); continue; }
+        } else { w += ADV_EM[classOf(ch)] * height * (1 + sp / 100); continue; }
+        w += (adv + roundAway((adv * sp) / 100)) * 4;
+      }
+    }
+    return w;
+  }
+  /** 원본 줄 폭(target, pt)에 맞는 자간을 찾고, 칸 폭(avail, pt)을 넘지 않게 조정 */
+  function fitSpacing(runs, targetPt, availPt) {
+    if (!runs.length || !runs.some((r) => r.t.trim())) return 0;
+    const solve = (goalHU) => {
+      let lo = -50, hi = 30;
+      if (hwpWidth(runs, lo) > goalHU) return -50;
+      for (let i = 0; i < 18; i++) { const mid = (lo + hi) / 2; if (hwpWidth(runs, mid) > goalHU) hi = mid; else lo = mid; }
+      return Math.floor(lo);
+    };
+    let sp = targetPt > 0 ? solve(targetPt * PT2HU) : 0;
+    if (Math.abs(sp) < 2) sp = 0;
+    if (availPt > 0) {
+      const lim = availPt * PT2HU * 0.985;
+      if (hwpWidth(runs, sp) > lim) sp = Math.min(sp, solve(lim));
+    }
+    return clamp(sp, -50, 30);
+  }
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const r0 = (v) => Math.round(v);
+
+  /* ───────────── 글꼴 이름 정리 ───────────── */
+  const FONT_MAP = [
+    [/hcr\s*batang|hamchorom\s*batang|함초롬바탕|hcrbatang/i, '함초롬바탕'],
+    [/hcr\s*dotum|hamchorom\s*dotum|함초롬돋움|hcrdotum/i, '함초롬돋움'],
+    [/malgun|맑은\s*고딕/i, '맑은 고딕'],
+    [/nanum\s*gothic|나눔고딕/i, '나눔고딕'],
+    [/nanum\s*myeongjo|나눔명조/i, '나눔명조'],
+    [/nanum\s*square|나눔스퀘어/i, '나눔스퀘어'],
+    [/hy\s*headline|hy헤드라인/i, 'HY헤드라인M'],
+    [/hy\s*gothic|hy\s*중고딕|hygothic/i, 'HY중고딕'],
+    [/hy\s*gyeonmyeongjo|hy견명조/i, 'HY견명조'],
+    [/gulimche|굴림체/i, '굴림체'],
+    [/gulim|굴림/i, '굴림'],
+    [/dotumche|돋움체/i, '돋움체'],
+    [/dotum|돋움/i, '돋움'],
+    [/batangche|바탕체/i, '바탕체'],
+    [/batang|바탕/i, '바탕'],
+    [/gungsuh|궁서/i, '궁서'],
+    [/noto\s*sans\s*(cjk|kr)/i, '함초롬돋움'],
+    [/noto\s*serif\s*(cjk|kr)/i, '함초롬바탕'],
+    [/myeongjo|명조|serif|times|mincho|song/i, '함초롬바탕'],
+  ];
+  function normalizeFont(name) {
+    const n = String(name || '').replace(/^[A-Z]{6}\+/, '');
+    for (const [re, face] of FONT_MAP) if (re.test(n)) return face;
+    if (/^serif$/i.test(n)) return '함초롬바탕';
+    if (/headline|헤드라인/i.test(n)) return 'HY헤드라인M';
+    return '함초롬돋움';
+  }
+  const isBoldName = (n) => /bold|black|heavy|extrabold|semibold|demibold|[-_ ]b$|bd$/i.test(String(n || '').replace(/^[A-Z]{6}\+/, ''));
+  const isItalicName = (n) => /italic|oblique/i.test(String(n || ''));
+
+  /* ───────────── 공통: 1차원 군집 ───────────── */
+  function cluster(values, tol) {
+    const v = [...values].sort((a, b) => a - b);
+    const groups = [];
+    for (const x of v) {
+      const g = groups[groups.length - 1];
+      if (g && x - g.max <= tol) { g.items.push(x); g.max = x; } else groups.push({ items: [x], max: x });
+    }
+    return groups.map((g) => g.items.reduce((a, b) => a + b, 0) / g.items.length);
+  }
+
+  /* ============================================================
+   * 1. PDF 페이지 추출 (pdf.js 3.x)
+   * ============================================================ */
+  async function extractPdfPage(page, pdfjsLib, opts = {}) {
+    const OPS = pdfjsLib.OPS;
+    const Util = pdfjsLib.Util;
+    const vp = page.getViewport({ scale: 1 });
+    const W = vp.width, H = vp.height;
+    const opList = await page.getOperatorList();
+    const tc = await page.getTextContent({ includeMarkedContent: false });
+
+    // ── 선(segment)·채움 영역 수집 ──
+    const hSegs = [], vSegs = [], shades = [];
+    let ctm = [1, 0, 0, 1, 0, 0];
+    let lw = 1, fillColor = '#000000', strokeColor = '#000000';
+    const stack = [];
+    let path = { lines: [], rects: [] };
+    const devM = () => Util.transform(vp.transform, ctm);
+    const scaleOf = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1;
+    const toHex = (a) => {
+      if (typeof a[0] === 'string') return a[0].toUpperCase();
+      const h = (n) => clamp(Math.round(n), 0, 255).toString(16).padStart(2, '0');
+      return ('#' + h(a[0]) + h(a[1]) + h(a[2])).toUpperCase();
+    };
+    const isWhite = (c) => { const n = parseInt(c.slice(1), 16); return ((n >> 16) & 255) > 245 && ((n >> 8) & 255) > 245 && (n & 255) > 245; };
+
+    const diags = [];
+    function addLine(x1, y1, x2, y2, width, color) {
+      const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+      if (dy < 0.6 && dx >= dy) {
+        const len = Math.abs(x2 - x1);
+        if (len < 0.25) return;
+        hSegs.push({ y: (y1 + y2) / 2, a: Math.min(x1, x2), b: Math.max(x1, x2), w: width, color, ink: len, n: 1 });
+      } else if (dx < 0.6 && dy > dx) {
+        const len = Math.abs(y2 - y1);
+        if (len < 0.25) return;
+        vSegs.push({ x: (x1 + x2) / 2, a: Math.min(y1, y2), b: Math.max(y1, y2), w: width, color, ink: len, n: 1 });
+      } else if (Math.hypot(x2 - x1, y2 - y1) > 6) {
+        diags.push({ x1, y1, x2, y2, w: width });
+      }
+    }
+    function commit(mode) {
+      const m = devM();
+      const sw = lw * scaleOf(m) || 0.3;
+      const P = (x, y) => Util.applyTransform([x, y], m);
+      if (mode.stroke) {
+        for (const r of path.rects) {
+          const p = [P(r[0], r[1]), P(r[0] + r[2], r[1]), P(r[0] + r[2], r[1] + r[3]), P(r[0], r[1] + r[3])];
+          for (let i = 0; i < 4; i++) addLine(p[i][0], p[i][1], p[(i + 1) % 4][0], p[(i + 1) % 4][1], sw, strokeColor);
+        }
+        for (const l of path.lines) { const a = P(l[0], l[1]), b = P(l[2], l[3]); addLine(a[0], a[1], b[0], b[1], sw, strokeColor); }
+      }
+      if (mode.fill) {
+        const boxes = [];
+        for (const r of path.rects) {
+          const a = P(r[0], r[1]), b = P(r[0] + r[2], r[1] + r[3]);
+          boxes.push([Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]);
+        }
+        if (path.lines.length >= 3 && path.lines.every((l) => Math.abs(l[0] - l[2]) < 0.01 || Math.abs(l[1] - l[3]) < 0.01)) {
+          const pts = path.lines.flatMap((l) => [P(l[0], l[1]), P(l[2], l[3])]);
+          const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+          boxes.push([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]);
+        }
+        for (const [x1, y1, x2, y2] of boxes) {
+          const w = x2 - x1, h = y2 - y1;
+          if (h <= 2.5 && w > 1.5) addLine(x1, (y1 + y2) / 2, x2, (y1 + y2) / 2, Math.max(h, 0.2), fillColor);
+          else if (w <= 2.5 && h > 1.5) addLine((x1 + x2) / 2, y1, (x1 + x2) / 2, y2, Math.max(w, 0.2), fillColor);
+          else if (w > 2.5 && h > 2.5 && !isWhite(fillColor)) shades.push({ x1, y1, x2, y2, color: fillColor });
+        }
+      }
+      path = { lines: [], rects: [] };
+    }
+
+    const fnA = opList.fnArray, argA = opList.argsArray;
+    for (let i = 0; i < fnA.length; i++) {
+      const fn = fnA[i], args = argA[i];
+      switch (fn) {
+        case OPS.save: stack.push({ ctm: ctm.slice(), lw, fillColor, strokeColor }); break;
+        case OPS.restore: { const s = stack.pop(); if (s) ({ ctm, lw, fillColor, strokeColor } = s); break; }
+        case OPS.transform: ctm = Util.transform(ctm, args); break;
+        case OPS.paintFormXObjectBegin:
+          stack.push({ ctm: ctm.slice(), lw, fillColor, strokeColor });
+          if (args && Array.isArray(args[0]) && args[0].length === 6) ctm = Util.transform(ctm, args[0]);
+          break;
+        case OPS.paintFormXObjectEnd: { const s = stack.pop(); if (s) ({ ctm, lw, fillColor, strokeColor } = s); break; }
+        case OPS.setLineWidth: lw = args[0]; break;
+        case OPS.setFillRGBColor: fillColor = toHex(args); break;
+        case OPS.setStrokeRGBColor: strokeColor = toHex(args); break;
+        case OPS.setFillGray: fillColor = toHex([args[0] * 255, args[0] * 255, args[0] * 255]); break;
+        case OPS.setStrokeGray: strokeColor = toHex([args[0] * 255, args[0] * 255, args[0] * 255]); break;
+        case OPS.constructPath: {
+          const ops = args[0], co = args[1];
+          let k = 0, cx = 0, cy = 0, sx = 0, sy = 0;
+          for (const op of ops) {
+            if (op === OPS.moveTo) { cx = sx = co[k++]; cy = sy = co[k++]; }
+            else if (op === OPS.lineTo) { const x = co[k++], y = co[k++]; path.lines.push([cx, cy, x, y]); cx = x; cy = y; }
+            else if (op === OPS.rectangle) { path.rects.push([co[k++], co[k++], co[k++], co[k++]]); }
+            else if (op === OPS.curveTo) { k += 4; cx = co[k++]; cy = co[k++]; }
+            else if (op === OPS.curveTo2 || op === OPS.curveTo3) { k += 2; cx = co[k++]; cy = co[k++]; }
+            else if (op === OPS.closePath) { if (cx !== sx || cy !== sy) path.lines.push([cx, cy, sx, sy]); cx = sx; cy = sy; }
+          }
+          break;
+        }
+        case OPS.stroke: case OPS.closeStroke: commit({ stroke: true }); break;
+        case OPS.fill: case OPS.eoFill: commit({ fill: true }); break;
+        case OPS.fillStroke: case OPS.eoFillStroke: case OPS.closeFillStroke: case OPS.closeEOFillStroke: commit({ fill: true, stroke: true }); break;
+        case OPS.endPath: path = { lines: [], rects: [] }; break;
+        default: break;
+      }
+    }
+
+    // ── 글자 수집 ──
+    const items = [];
+    for (const it of tc.items) {
+      if (!it.str || !it.str.trim()) continue;
+      const m = Util.transform(vp.transform, it.transform);
+      const size = Math.hypot(m[2], m[3]) || Math.hypot(m[0], m[1]);
+      if (size < 1) continue;
+      // 세로쓰기·회전 글자는 건너뜀
+      if (Math.abs(m[1]) > Math.abs(m[0]) * 0.5) continue;
+      let fontName = '', bold = false, italic = false;
+      try {
+        const f = page.commonObjs.has(it.fontName) ? page.commonObjs.get(it.fontName) : null;
+        fontName = (f && (f.name || f.loadedName)) || '';
+        bold = !!(f && (f.bold || f.black)) || isBoldName(fontName);
+        italic = !!(f && f.italic) || isItalicName(fontName);
+      } catch (e) { /* 무시 */ }
+      const family = (tc.styles && tc.styles[it.fontName] && tc.styles[it.fontName].fontFamily) || '';
+      const w = it.width * (vp.scale || 1);
+      const iw = w > 0 ? w : it.str.length * size * 0.5;
+      let color = '#000000';
+      if (opts.sampleColor) { try { color = opts.sampleColor(m[4], m[5] - size * 0.8, m[4] + iw, m[5] + size * 0.1) || '#000000'; } catch (e) { /* 무시 */ } }
+      items.push({ str: it.str, x: m[4], y: m[5], w: iw, size, bold, italic, color, font: normalizeFont(fontName || family) });
+    }
+    // 겹쳐 찍은 굵은 글씨 중복 제거
+    items.sort((a, b) => a.y - b.y || a.x - b.x);
+    const dedup = [];
+    for (const it of items) {
+      const d = dedup.find((o) => o.str === it.str && Math.abs(o.x - it.x) < 1.2 && Math.abs(o.y - it.y) < 1.2);
+      if (d) d.bold = true; else dedup.push(it);
+    }
+
+    const layout = buildLayoutFromPrimitives({ W, H, items: dedup, hSegs, vSegs, shades, diags });
+    layout.textChars = dedup.reduce((n, i) => n + i.str.trim().length, 0);
+    layout.lineCount = hSegs.length + vSegs.length;
+    return layout;
+  }
+
+  /* ── 선 병합 ── */
+  function mergeSegs(segs, key) {
+    const groups = new Map();
+    const sorted = [...segs].sort((a, b) => a[key] - b[key]);
+    const out = [];
+    let cur = [];
+    const flush = () => {
+      if (!cur.length) return;
+      cur.sort((a, b) => a.a - b.a);
+      let s = { ...cur[0] };
+      for (let i = 1; i < cur.length; i++) {
+        const t = cur[i];
+        const sShort = s.ink / s.n < 3, tShort = t.ink < 3;
+        const ok = sShort === tShort ? t.a <= s.b + (tShort ? 2.6 : 1.5) : t.a < s.b - 0.3;
+        if (ok) { s.b = Math.max(s.b, t.b); s.w = Math.max(s.w, t.w); s[key] = (s[key] + t[key]) / 2; s.ink += t.ink; s.n += t.n; }
+        else { out.push(s); s = { ...t }; }
+      }
+      out.push(s);
+      cur = [];
+    };
+    for (const sg of sorted) {
+      if (cur.length && sg[key] - cur[cur.length - 1][key] > 0.7) flush();
+      cur.push(sg);
+    }
+    flush();
+    void groups;
+    for (const s of out) {
+      const span = s.b - s.a;
+      s.dot = s.n >= 4 && s.ink / span < 0.8 ? (s.ink / s.n < 1.6 ? 'DOT' : 'DASH') : '';
+    }
+    return out.filter((s) => s.b - s.a >= 1.5);
+  }
+
+  /* ── 표 찾기 + 글자 배치 → 레이아웃 ── */
+  function buildLayoutFromPrimitives({ W, H, items, hSegs, vSegs, shades, diags = [] }) {
+    const hs = mergeSegs(hSegs, 'y');
+    const vs = mergeSegs(vSegs, 'x');
+    const tol = 2.2;
+    // union-find: 가로·세로가 만나면 같은 표
+    const n = hs.length + vs.length;
+    const par = Array.from({ length: n }, (_, i) => i);
+    const find = (i) => (par[i] === i ? i : (par[i] = find(par[i])));
+    const uni = (a, b) => { a = find(a); b = find(b); if (a !== b) par[a] = b; };
+    hs.forEach((h, i) => vs.forEach((v, j) => {
+      if (v.x >= h.a - tol && v.x <= h.b + tol && h.y >= v.a - tol && h.y <= v.b + tol) uni(i, hs.length + j);
+    }));
+    const comps = new Map();
+    for (let i = 0; i < n; i++) {
+      const r = find(i);
+      if (!comps.has(r)) comps.set(r, { h: [], v: [] });
+      if (i < hs.length) comps.get(r).h.push(hs[i]); else comps.get(r).v.push(vs[i - hs.length]);
+    }
+    const tables = [];
+    for (const c of comps.values()) {
+      if (c.h.length < 2 || c.v.length < 2) continue;
+      const t = buildTable(c.h, c.v, shades, diags);
+      if (!t) continue;
+      // 페이지 전체 테두리(1칸짜리 큰 상자)는 표로 보지 않음
+      if (t.rowH.length === 1 && t.colW.length === 1 && (t.x2 - t.x1) * (t.bottom - t.top) > W * H * 0.45) continue;
+      tables.push(t);
+    }
+    // 큰 표 안에 들어간 작은 표(중첩)는 제거
+    const inside = (a, b) => a !== b && a.x1 >= b.x1 - 1 && a.x2 <= b.x2 + 1 && a.top >= b.top - 1 && a.bottom <= b.bottom + 1;
+    const finalTables = tables.filter((t) => !tables.some((o) => inside(t, o)));
+
+    // 글자 → 셀 / 본문
+    const free = [];
+    for (const it of items) {
+      const cx = it.x + it.w / 2, cy = it.y - it.size * 0.35;
+      let placed = false;
+      for (const t of finalTables) {
+        if (cx < t.x1 || cx > t.x2 || cy < t.top || cy > t.bottom) continue;
+        const cell = t.cells.find((c) => cx >= c._x1 && cx <= c._x2 && cy >= c._y1 && cy <= c._y2);
+        if (cell) { cell._items.push(it); placed = true; break; }
+      }
+      if (!placed) free.push(it);
+    }
+    for (const t of finalTables) {
+      for (const c of t.cells) {
+        const lines = groupLines(c._items);
+        c.paras = lines.map((ln, i) => {
+          const gl = ln.x1 - c._x1, gr = c._x2 - ln.x2, w = c._x2 - c._x1;
+          let align = 'LEFT', indent = 0;
+          if (Math.abs(gl - gr) <= Math.max(3, w * 0.08)) align = 'CENTER';
+          else if (gl < gr) { align = 'LEFT'; indent = Math.max(0, gl - 1.6); }
+          else align = 'RIGHT';
+          const next = lines[i + 1];
+          let ls = 130;
+          if (next) ls = clamp(((next.y - ln.y) / ln.size) * 100, 100, 300);
+          else if (lines.length > 1) ls = clamp(((ln.y - lines[i - 1].y) / ln.size) * 100, 100, 300);
+          const sp = fitSpacing(ln.runs, ln.x2 - ln.x1, w - 2 * 1.41 - indent);
+          if (sp) for (const r of ln.runs) r.sp = sp;
+          // 마지막 줄은 줄 간격이 칸 높이만 늘리므로 100%
+          return { align, indent, ls: next ? r0(ls) : 100, runs: ln.runs, oneLine: true };
+        });
+        if (lines.length) {
+          const top = lines[0].y - lines[0].size * 0.85, bot = lines[lines.length - 1].y + lines[lines.length - 1].size * 0.2;
+          const tg = top - c._y1, bg = c._y2 - bot, h = c._y2 - c._y1;
+          c.va = Math.abs(tg - bg) <= Math.max(3, h * 0.2) ? 'CENTER' : tg < bg ? 'TOP' : 'BOTTOM';
+        } else c.va = 'CENTER';
+        delete c._items;
+      }
+    }
+
+    // 본문 줄
+    const lines = groupLines(free);
+    const blocks = [];
+    lines.forEach((ln, i) => {
+      const next = lines[i + 1];
+      let ls = 160;
+      if (next && Math.abs(next.size - ln.size) < 0.6 && next.y - ln.y < ln.size * 2.6 && next.y - ln.y > ln.size * 0.9)
+        ls = clamp(((next.y - ln.y) / ln.size) * 100, 100, 260);
+      const sp = fitSpacing(ln.runs, ln.x2 - ln.x1, W - ln.x1 - 14);
+      if (sp) for (const r of ln.runs) r.sp = sp;
+      blocks.push({ kind: 'p', top: ln.y - ln.size * 0.85, x1: ln.x1, x2: ln.x2, size: ln.size, ls: r0(ls), runs: ln.runs, oneLine: true });
+    });
+    for (const t of finalTables) blocks.push(t);
+    blocks.sort((a, b) => a.top - b.top || a.x1 - b.x1);
+    return finalizeLayout({ W, H, blocks });
+  }
+
+  function buildTable(H, V, shades, diags = []) {
+    const ys0 = cluster(H.map((h) => h.y), 1.2);
+    const xs0 = cluster(V.map((v) => v.x), 1.2);
+    // 이중선: 3pt 이내로 붙은 선 묶기
+    const mergeClose = (arr) => { const o = []; for (const v of arr) { if (o.length && v - o[o.length - 1] < 3) o[o.length - 1] = (o[o.length - 1] + v) / 2; else o.push(v); } return o; };
+    const ys = mergeClose(ys0), xs = mergeClose(xs0);
+    if (ys.length < 2 || xs.length < 2) return null;
+    const R = ys.length - 1, C = xs.length - 1;
+    const near = 2.6;
+    const cover = (segs, pos, key, a, b) => {
+      const hits = segs.filter((s) => Math.abs(s[key] - pos) <= near && s.b > a + 0.5 && s.a < b - 0.5);
+      let len = 0;
+      const iv = hits.map((s) => [Math.max(a, s.a), Math.min(b, s.b)]).sort((p, q) => p[0] - q[0]);
+      let ca = -1e9, cb = -1e9;
+      for (const [p, q] of iv) { if (p > cb) { len += cb - ca > 0 ? cb - ca : 0; ca = p; cb = q; } else cb = Math.max(cb, q); }
+      len += cb - ca > 0 ? cb - ca : 0;
+      return { ratio: (b - a) > 0 ? len / (b - a) : 0, hits };
+    };
+    const vB = (i, j) => cover(V, xs[j], 'x', ys[i], ys[i + 1]); // 세로선: 행 i, x 경계 j
+    const hB = (i, j) => cover(H, ys[i], 'y', xs[j], xs[j + 1]); // 가로선: y 경계 i, 열 j
+    const has = (o) => o.ratio >= 0.55;
+
+    const owner = Array.from({ length: R }, () => Array(C).fill(-1));
+    const cells = [];
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      if (owner[r][c] >= 0) continue;
+      let cs = 1;
+      while (c + cs < C && owner[r][c + cs] < 0 && !has(vB(r, c + cs))) cs++;
+      let rs = 1;
+      outer: while (r + rs < R) {
+        for (let k = 0; k < cs; k++) { if (owner[r + rs][c + k] >= 0 || has(hB(r + rs, c + k))) break outer; }
+        for (let k = 1; k < cs; k++) if (has(vB(r + rs, c + k))) break outer;
+        rs++;
+      }
+      const id = cells.length;
+      for (let a = 0; a < rs; a++) for (let b = 0; b < cs; b++) owner[r + a][c + b] = id;
+      cells.push({ r, c, rs, cs });
+    }
+    const side = (list) => {
+      const hits = list.flatMap((o) => o.hits);
+      const covered = list.some(has) || list.reduce((s, o) => s + o.ratio, 0) / list.length > 0.4;
+      if (!covered || !hits.length) return { type: 'NONE', w: 0.12 };
+      const pos = cluster(hits.map((h) => (h.y !== undefined ? h.y : h.x)), 0.5);
+      const w = Math.max(...hits.map((h) => h.w));
+      if (pos.length >= 2 && pos[pos.length - 1] - pos[0] > 0.8) return { type: 'DOUBLE_SLIM', w: snapWidth(w * 0.3528) };
+      const dotted = hits.filter((h) => h.dot);
+      if (dotted.length * 2 >= hits.length) return { type: dotted[0].dot, w: snapWidth(w * 0.3528) };
+      return { type: 'SOLID', w: snapWidth(w * 0.3528) };
+    };
+    for (const cell of cells) {
+      const { r, c, rs, cs } = cell;
+      cell._x1 = xs[c]; cell._x2 = xs[c + cs]; cell._y1 = ys[r]; cell._y2 = ys[r + rs];
+      cell.b = {
+        l: side(Array.from({ length: rs }, (_, k) => vB(r + k, c))),
+        r: side(Array.from({ length: rs }, (_, k) => vB(r + k, c + cs))),
+        t: side(Array.from({ length: cs }, (_, k) => hB(r, c + k))),
+        bm: side(Array.from({ length: cs }, (_, k) => hB(r + rs, c + k))),
+      };
+      const area = (cell._x2 - cell._x1) * (cell._y2 - cell._y1);
+      for (const s of shades) {
+        const ix = Math.min(s.x2, cell._x2) - Math.max(s.x1, cell._x1), iy = Math.min(s.y2, cell._y2) - Math.max(s.y1, cell._y1);
+        if (ix > 0 && iy > 0 && ix * iy > area * 0.5) cell.bg = s.color;
+      }
+      const cw = cell._x2 - cell._x1, ch = cell._y2 - cell._y1, tl = Math.max(2.5, Math.min(cw, ch) * 0.12);
+      const at = (x, y, px, py) => Math.abs(x - px) <= tl && Math.abs(y - py) <= tl;
+      for (const d of diags) {
+        const ends = [[d.x1, d.y1], [d.x2, d.y2]];
+        const hasEnd = (px, py) => ends.some(([x, y]) => at(x, y, px, py));
+        if (hasEnd(cell._x1, cell._y1) && hasEnd(cell._x2, cell._y2)) cell.diag = { kind: 'back', w: snapWidth(d.w * 0.3528) };
+        else if (hasEnd(cell._x1, cell._y2) && hasEnd(cell._x2, cell._y1)) cell.diag = { kind: 'slash', w: snapWidth(d.w * 0.3528) };
+      }
+      cell._items = [];
+    }
+    const t = {
+      kind: 't', top: ys[0], bottom: ys[R], x1: xs[0], x2: xs[C],
+      colW: xs.slice(1).map((x, i) => x - xs[i]), rowH: ys.slice(1).map((y, i) => y - ys[i]), cells,
+    };
+    normalizeTable(t);
+    return t;
+  }
+
+  /** 시작 셀이 없는 행/열 제거 (한글이 표를 거부하지 않도록) */
+  function normalizeTable(t) {
+    for (let i = t.rowH.length - 1; i >= 0; i--) {
+      if (t.cells.some((c) => c.r === i)) continue;
+      for (const c of t.cells) { if (c.r < i && c.r + c.rs > i) c.rs--; else if (c.r > i) c.r--; }
+      if (i > 0) t.rowH[i - 1] += t.rowH[i]; else if (t.rowH.length > 1) t.rowH[1] += t.rowH[0];
+      t.rowH.splice(i, 1);
+    }
+    for (let j = t.colW.length - 1; j >= 0; j--) {
+      if (t.cells.some((c) => c.c === j)) continue;
+      for (const c of t.cells) { if (c.c < j && c.c + c.cs > j) c.cs--; else if (c.c > j) c.c--; }
+      if (j > 0) t.colW[j - 1] += t.colW[j]; else if (t.colW.length > 1) t.colW[1] += t.colW[0];
+      t.colW.splice(j, 1);
+    }
+  }
+
+  /** 글자 조각 → 줄(runs 포함) */
+  function groupLines(items) {
+    const its = [...items].sort((a, b) => a.y - b.y || a.x - b.x);
+    const lines = [];
+    for (const it of its) {
+      const ln = lines.find((l) => Math.abs(l.y - it.y) < Math.min(l.size, it.size) * 0.4);
+      if (ln) { ln.items.push(it); ln.size = Math.max(ln.size, it.size); }
+      else lines.push({ y: it.y, size: it.size, items: [it] });
+    }
+    for (const ln of lines) {
+      ln.items.sort((a, b) => a.x - b.x);
+      ln.x1 = ln.items[0].x;
+      ln.x2 = Math.max(...ln.items.map((i) => i.x + i.w));
+      ln.y = ln.items.reduce((s, i) => s + i.y * i.size, 0) / ln.items.reduce((s, i) => s + i.size, 0);
+      const runs = [];
+      let prevEnd = null;
+      for (const it of ln.items) {
+        let text = it.str;
+        if (prevEnd !== null) {
+          const gap = it.x - prevEnd;
+          const last = runs[runs.length - 1];
+          const endsSpace = last && /\s$/.test(last.t);
+          if (gap > it.size * 0.18 && !endsSpace && !/^\s/.test(text)) {
+            const cnt = clamp(Math.round(gap / (it.size * 0.5)), 1, 60);
+            text = ' '.repeat(cnt) + text;
+          }
+        }
+        const st = { size: Math.round(it.size * 2) / 2, bold: it.bold, italic: it.italic, font: it.font, color: it.color || '#000000' };
+        const last = runs[runs.length - 1];
+        if (last && last.size === st.size && last.bold === st.bold && last.italic === st.italic && last.font === st.font && last.color === st.color) last.t += text;
+        else runs.push({ t: text, ...st });
+        prevEnd = it.x + it.w;
+      }
+      ln.runs = runs;
+    }
+    lines.sort((a, b) => a.y - b.y);
+    return lines;
+  }
+
+  /** 페이지 여백 계산 */
+  function finalizeLayout({ W, H, blocks }) {
+    let minX = W, maxX = 0, minY = H, maxY = 0;
+    for (const b of blocks) {
+      minX = Math.min(minX, b.x1); maxX = Math.max(maxX, b.x2);
+      minY = Math.min(minY, b.top);
+      maxY = Math.max(maxY, b.kind === 't' ? b.bottom : b.top + b.size * 1.2);
+    }
+    if (!blocks.length) { minX = 56; maxX = W - 56; minY = 56; maxY = H - 56; }
+    const ml = clamp(minX - 1, 8, W / 3), mr = clamp(W - maxX - 1, 8, W / 3);
+    const mt = clamp(minY - 1, 8, H / 3);
+    const mb = clamp(Math.min(H - maxY, 42), 8, H / 3);
+    return { W, H, margin: { l: ml, r: mr, t: mt, b: mb }, blocks };
+  }
+
+  /* ============================================================
+   * 2. AI 인식 결과(JSON) → 레이아웃
+   * ============================================================ */
+  const AI_PROMPT = `당신은 한국 학교·공공기관 문서 양식을 한글(HWP) 편집 문서로 복원하는 조판 전문가입니다.
+첨부 이미지는 문서 한 페이지입니다. 원본과 최대한 똑같이 다시 조판할 수 있도록 페이지의 모든 요소를 위에서 아래 순서로 JSON으로 기술하세요.
+
+규칙
+- 좌표·크기는 모두 mm(페이지 좌상단 원점). 페이지 크기는 실제 용지 기준(A4 세로면 210×297)으로 추정.
+- 글자는 원본 그대로 한 글자도 빠짐없이 옮기고, 맞춤법을 고치지 마세요. 빈 칸(작성란)은 빈 문자열 "".
+- 표는 격자 전체를 기술: colWidthsMm(열 너비들), rowHeightsMm(행 높이들), cells(왼쪽 위 칸 기준 row/col, 병합은 rowSpan/colSpan). 모든 격자 칸이 정확히 한 셀에 속해야 합니다.
+- 셀 테두리가 없는 면은 borders에 "none", 굵은 선은 "thick", 이중선은 "double", 점선은 "dotted", 파선은 "dashed", 그 외 "solid".
+- 셀 배경색이 있으면 bg에 #RRGGBB. 검정이 아닌 글자색은 color에 #RRGGBB. 셀 안 줄바꿈은 \\n.
+- 대각선이 그어진 칸(예: 왼쪽 위 머리칸)은 diagonal에 "down"(왼쪽 위→오른쪽 아래) 또는 "up".
+- 표가 아닌 글은 paragraph로, 한 줄씩 나누지 말고 원본의 문단 단위로. 여러 줄이면 \\n으로 줄 위치 유지.
+- font: "serif"(바탕·명조), "sans"(돋움·고딕), "headline"(굵은 제목체) 중 하나.
+- 서명란, 결재란, 체크박스(□), 원문자 등 기호도 그대로.
+
+출력(JSON만):
+{"page":{"widthMm":210,"heightMm":297},
+ "blocks":[
+  {"type":"paragraph","yMm":20,"xMm":20,"widthMm":170,"align":"left|center|right|justify","fontSizePt":10,"bold":false,"underline":false,"font":"sans","lineSpacing":160,"text":"..."},
+  {"type":"table","yMm":40,"xMm":20,"colWidthsMm":[30,140],"rowHeightsMm":[8,8],
+   "cells":[{"row":0,"col":0,"rowSpan":1,"colSpan":1,"text":"","align":"center","vAlign":"middle","fontSizePt":10,"bold":false,"font":"sans","bg":null,"color":null,"diagonal":null,
+             "borders":{"top":"solid","bottom":"solid","left":"solid","right":"solid"}}]}
+ ]}`;
+
+  function aiToLayout(json, fallbackPageMm) {
+    const page = (json && json.page) || {};
+    const Wmm = Number(page.widthMm) || (fallbackPageMm && fallbackPageMm.w) || 210;
+    const Hmm = Number(page.heightMm) || (fallbackPageMm && fallbackPageMm.h) || 297;
+    const W = Wmm * MM2PT, H = Hmm * MM2PT;
+    const hexOf = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c.toUpperCase() : '#000000');
+    const fontOf = (f) => (f === 'serif' ? '함초롬바탕' : f === 'headline' ? 'HY헤드라인M' : '함초롬돋움');
+    const alignOf = (a) => ({ left: 'LEFT', center: 'CENTER', right: 'RIGHT', justify: 'JUSTIFY' }[String(a || '').toLowerCase()] || 'LEFT');
+    const vaOf = (a) => ({ top: 'TOP', middle: 'CENTER', center: 'CENTER', bottom: 'BOTTOM' }[String(a || '').toLowerCase()] || 'CENTER');
+    const bOf = (s) => {
+      s = String(s || 'solid').toLowerCase();
+      if (s === 'none') return { type: 'NONE', w: 0.12 };
+      if (s === 'thick') return { type: 'SOLID', w: 0.4 };
+      if (s === 'double') return { type: 'DOUBLE_SLIM', w: 0.5 };
+      if (s === 'dotted' || s === 'dot') return { type: 'DOT', w: 0.12 };
+      if (s === 'dashed' || s === 'dash') return { type: 'DASH', w: 0.12 };
+      return { type: 'SOLID', w: 0.12 };
+    };
+    const blocks = [];
+    for (const b of (json && json.blocks) || []) {
+      const x = (Number(b.xMm) || 20) * MM2PT, y = (Number(b.yMm) || 0) * MM2PT;
+      if (b.type === 'table') {
+        const colW = (b.colWidthsMm || []).map((v) => Math.max(1, Number(v) || 1) * MM2PT);
+        const rowH = (b.rowHeightsMm || []).map((v) => Math.max(1, Number(v) || 1) * MM2PT);
+        if (!colW.length || !rowH.length) continue;
+        const R = rowH.length, C = colW.length;
+        const owner = Array.from({ length: R }, () => Array(C).fill(false));
+        const cells = [];
+        for (const c of b.cells || []) {
+          const r = clamp(c.row | 0, 0, R - 1), cc = clamp(c.col | 0, 0, C - 1);
+          const rs = clamp(c.rowSpan | 0 || 1, 1, R - r), cs = clamp(c.colSpan | 0 || 1, 1, C - cc);
+          let clash = false;
+          for (let a = 0; a < rs; a++) for (let k = 0; k < cs; k++) if (owner[r + a][cc + k]) clash = true;
+          if (clash) continue;
+          for (let a = 0; a < rs; a++) for (let k = 0; k < cs; k++) owner[r + a][cc + k] = true;
+          const size = Number(c.fontSizePt) || 10;
+          const brd = c.borders || {};
+          cells.push({
+            r, c: cc, rs, cs, va: vaOf(c.vAlign), bg: /^#[0-9a-f]{6}$/i.test(c.bg || '') ? c.bg.toUpperCase() : undefined,
+            b: { l: bOf(brd.left), r: bOf(brd.right), t: bOf(brd.top), bm: bOf(brd.bottom) },
+            diag: c.diagonal === 'down' ? { kind: 'back', w: 0.12 } : c.diagonal === 'up' ? { kind: 'slash', w: 0.12 } : undefined,
+            paras: String(c.text ?? '').split('\n').map((t) => ({ align: alignOf(c.align), indent: 0, ls: 130, runs: [{ t, size, bold: !!c.bold, font: fontOf(c.font), color: hexOf(c.color) }] })),
+          });
+        }
+        // 빠진 격자 칸 채우기
+        for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (!owner[r][c]) {
+          owner[r][c] = true;
+          cells.push({ r, c, rs: 1, cs: 1, va: 'CENTER', b: { l: bOf(), r: bOf(), t: bOf(), bm: bOf() }, paras: [{ align: 'LEFT', indent: 0, ls: 130, runs: [{ t: '', size: 10, font: '함초롬돋움' }] }] });
+        }
+        cells.sort((p, q) => p.r - q.r || p.c - q.c);
+        const t = { kind: 't', top: y, x1: x, colW, rowH, cells };
+        normalizeTable(t);
+        t.x2 = x + t.colW.reduce((s, v) => s + v, 0);
+        t.bottom = y + t.rowH.reduce((s, v) => s + v, 0);
+        blocks.push(t);
+      } else {
+        const size = Number(b.fontSizePt) || 10;
+        const ls = clamp(Number(b.lineSpacing) || 160, 100, 300);
+        const lines = String(b.text ?? '').split('\n');
+        const wpt = (Number(b.widthMm) || 0) * MM2PT;
+        lines.forEach((t, i) => {
+          blocks.push({
+            kind: 'p', top: y + i * size * ls / 100, x1: x, x2: wpt ? x + wpt : x + t.length * size * 0.9, size, ls,
+            alignHint: alignOf(b.align),
+            runs: [{ t, size, bold: !!b.bold, underline: !!b.underline, font: fontOf(b.font), color: hexOf(b.color) }],
+          });
+        });
+      }
+    }
+    blocks.sort((a, b) => a.top - b.top || a.x1 - b.x1);
+    return finalizeLayout({ W, H, blocks });
+  }
+
+  /* ============================================================
+   * 3. 레이아웃 → hwpx
+   * ============================================================ */
+  class HeaderBuilder {
+    constructor(xml) {
+      this.xml = xml;
+      this.fonts = new Map();
+      const hang = xml.match(/<hh:fontface lang="HANGUL"[\s\S]*?<\/hh:fontface>/)[0];
+      for (const m of hang.matchAll(/<hh:font id="(\d+)" face="([^"]+)"/g)) this.fonts.set(m[2], +m[1]);
+      this.fontNext = this.fonts.size;
+      this.newFonts = [];
+      this.bfNext = (xml.match(/<hh:borderFill id=/g) || []).length + 1;
+      this.cpNext = (xml.match(/<hh:charPr id=/g) || []).length;
+      this.ppNext = (xml.match(/<hh:paraPr id=/g) || []).length;
+      this.bf = new Map(); this.cp = new Map(); this.pp = new Map();
+      this.bfXml = []; this.cpXml = []; this.ppXml = [];
+    }
+    font(face) {
+      if (this.fonts.has(face)) return this.fonts.get(face);
+      const id = this.fontNext++;
+      this.fonts.set(face, id);
+      this.newFonts.push({ id, face });
+      return id;
+    }
+    borderFill({ l, r, t, b, bg, diag }) {
+      const key = JSON.stringify([l, r, t, b, bg || '', diag || '']);
+      if (this.bf.has(key)) return this.bf.get(key);
+      const id = this.bfNext++;
+      const side = (n, s) => `<hh:${n} type="${s.type}" width="${s.type === 'NONE' ? '0.1' : Number.isInteger(s.w) ? s.w.toFixed(1) : String(s.w)} mm" color="#000000"/>`;
+      const fill = bg ? `<hc:fillBrush><hc:winBrush faceColor="${bg}" hatchColor="#999999" alpha="0"/></hc:fillBrush>` : '';
+      this.bfXml.push(`<hh:borderFill id="${id}" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0"><hh:slash type="${diag && diag.kind === 'slash' ? 'CENTER' : 'NONE'}" Crooked="0" isCounter="0"/><hh:backSlash type="${diag && diag.kind === 'back' ? 'CENTER' : 'NONE'}" Crooked="0" isCounter="0"/>${side('leftBorder', l)}${side('rightBorder', r)}${side('topBorder', t)}${side('bottomBorder', b)}${side('diagonal', diag ? { type: 'SOLID', w: diag.w } : { type: 'SOLID', w: 0.1 })}${fill}</hh:borderFill>`);
+      this.bf.set(key, id);
+      return id;
+    }
+    charPr({ size = 10, bold = false, italic = false, underline = false, font = '함초롬돋움', color = '#000000', sp = 0 }) {
+      const h = clamp(Math.round(size * 2) * 50, 100, 409600);
+      const fid = this.font(font);
+      sp = clamp(Math.round(sp || 0), -50, 50);
+      const key = [h, bold, italic, underline, fid, color, sp].join('|');
+      if (this.cp.has(key)) return this.cp.get(key);
+      const id = this.cpNext++;
+      const all = (v) => ['hangul', 'latin', 'hanja', 'japanese', 'other', 'symbol', 'user'].map((k) => `${k}="${v}"`).join(' ');
+      this.cpXml.push(`<hh:charPr id="${id}" height="${h}" textColor="${color}" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="2"><hh:fontRef ${all(fid)}/><hh:ratio ${all(100)}/><hh:spacing ${all(sp)}/><hh:relSz ${all(100)}/><hh:offset ${all(0)}/>${italic ? '<hh:italic/>' : ''}${bold ? '<hh:bold/>' : ''}<hh:underline type="${underline ? 'BOTTOM' : 'NONE'}" shape="SOLID" color="#000000"/><hh:strikeout shape="NONE" color="#000000"/><hh:outline type="NONE"/><hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/></hh:charPr>`);
+      this.cp.set(key, id);
+      return id;
+    }
+    paraPr({ align = 'LEFT', left = 0, indent = 0, prev = 0, next = 0, ls = 160, oneLine = false }) {
+      left = r0(left); indent = r0(indent); prev = r0(Math.max(0, prev)); next = r0(Math.max(0, next)); ls = r0(ls);
+      const key = [align, left, indent, prev, next, ls, oneLine].join('|');
+      if (this.pp.has(key)) return this.pp.get(key);
+      const id = this.ppNext++;
+      const mg = (k) => `<hh:margin><hc:intent value="${indent * k}" unit="HWPUNIT"/><hc:left value="${left * k}" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="${prev * k}" unit="HWPUNIT"/><hc:next value="${next * k}" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="${ls}" unit="HWPUNIT"/>`;
+      this.ppXml.push(`<hh:paraPr id="${id}" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="0" suppressLineNumbers="0" checked="0" textDir="LTR"><hh:align horizontal="${align}" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="BREAK_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="${oneLine ? 'SQUEEZE' : 'BREAK'}"/><hh:autoSpacing eAsianEng="0" eAsianNum="0"/><hp:switch><hp:case hp:required-namespace="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar">${mg(1)}</hp:case><hp:default>${mg(2)}</hp:default></hp:switch><hh:border borderFillIDRef="2" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>`);
+      this.pp.set(key, id);
+      return id;
+    }
+    toXml() {
+      let x = this.xml;
+      if (this.newFonts.length) {
+        x = x.replace(/<hh:fontface lang="([A-Z]+)" fontCnt="(\d+)">([\s\S]*?)<\/hh:fontface>/g, (m, lang, cnt, inner) => {
+          const add = this.newFonts.map((f) => `<hh:font id="${f.id}" face="${esc(f.face)}" type="TTF" isEmbedded="0"><hh:typeInfo familyType="FCAT_GOTHIC" weight="6" proportion="4" contrast="0" strokeVariation="1" armStyle="1" letterform="1" midline="1" xHeight="1"/></hh:font>`).join('');
+          return `<hh:fontface lang="${lang}" fontCnt="${+cnt + this.newFonts.length}">${inner}${add}</hh:fontface>`;
+        });
+      }
+      const ins = (tag, items) => {
+        if (!items.length) return;
+        x = x.replace(`</hh:${tag}>`, items.join('') + `</hh:${tag}>`);
+        x = x.replace(new RegExp(`<hh:${tag} itemCnt="(\\d+)"`), (m, n) => `<hh:${tag} itemCnt="${+n + items.length}"`);
+      };
+      ins('borderFills', this.bfXml);
+      ins('charProperties', this.cpXml);
+      ins('paraProperties', this.ppXml);
+      return x;
+    }
+  }
+
+  function buildSection(skeletonSec, layouts, hb) {
+    const first = layouts[0] || { W: 595.3, H: 841.9, margin: { l: 56, r: 56, t: 56, b: 42 }, blocks: [] };
+    // 여백: 모든 페이지 중 가장 좁은 값
+    const mg = { l: Infinity, r: Infinity, t: Infinity, b: Infinity };
+    for (const L of layouts) for (const k of 'lrtb') mg[k] = Math.min(mg[k], L.margin[k]);
+    if (!layouts.length) Object.assign(mg, first.margin);
+    const landscape = first.W > first.H;
+    const pw = r0(Math.min(first.W, first.H) * PT2HU), ph = r0(Math.max(first.W, first.H) * PT2HU);
+    let secPr = skeletonSec.match(/<hp:secPr[\s\S]*?<\/hp:secPr><hp:ctrl>[\s\S]*?<\/hp:ctrl>/)[0];
+    secPr = secPr.replace(/<hp:pagePr [^>]*>/, `<hp:pagePr landscape="${landscape ? 'NARROWLY' : 'WIDELY'}" width="${pw}" height="${ph}" gutterType="LEFT_ONLY">`)
+      .replace(/<hp:margin header="\d+" footer="\d+" gutter="\d+" left="\d+" right="\d+" top="\d+" bottom="\d+"\/>/,
+        `<hp:margin header="0" footer="0" gutter="0" left="${r0(mg.l * PT2HU)}" right="${r0(mg.r * PT2HU)}" top="${r0(mg.t * PT2HU)}" bottom="${r0(mg.b * PT2HU)}"/>`);
+    const rootOpen = skeletonSec.match(/<hs:sec [^>]*>/)[0];
+    const contentW = first.W - mg.l - mg.r;
+    let tblId = 1000000001, z = 0;
+
+    const runXml = (runs) => runs.map((r) => {
+      const id = hb.charPr(r);
+      return r.t ? `<hp:run charPrIDRef="${id}"><hp:t>${esc(r.t)}</hp:t></hp:run>` : `<hp:run charPrIDRef="${id}"/>`;
+    }).join('');
+
+    const cellPara = (p) => {
+      const pp = hb.paraPr({ align: p.align || 'LEFT', left: (p.indent || 0) * PT2HU, ls: p.ls || 130, oneLine: !!p.oneLine });
+      const runs = p.runs && p.runs.length ? p.runs : [{ t: '', size: 10 }];
+      return `<hp:p id="0" paraPrIDRef="${pp}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">${runXml(runs)}</hp:p>`;
+    };
+
+    const tableXml = (t) => {
+      const colW = t.colW.map((v) => Math.max(200, r0(v * PT2HU)));
+      const rowH = t.rowH.map((v) => Math.max(200, r0(v * PT2HU)));
+      const Wt = colW.reduce((a, b) => a + b, 0), Ht = rowH.reduce((a, b) => a + b, 0);
+      const rows = rowH.map(() => []);
+      for (const c of t.cells) rows[c.r].push(c);
+      const trs = rows.map((cells) => `<hp:tr>${cells.sort((a, b) => a.c - b.c).map((c) => {
+        const w = colW.slice(c.c, c.c + c.cs).reduce((a, b) => a + b, 0);
+        const h = rowH.slice(c.r, c.r + c.rs).reduce((a, b) => a + b, 0);
+        const bf = hb.borderFill({ l: c.b.l, r: c.b.r, t: c.b.t, b: c.b.bm, bg: c.bg, diag: c.diag });
+        const paras = (c.paras && c.paras.length ? c.paras : [{ align: 'LEFT', runs: [{ t: '', size: 10 }] }]).map(cellPara).join('');
+        return `<hp:tc name="" header="0" hasMargin="1" protect="0" editable="0" dirty="0" borderFillIDRef="${bf}"><hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="${c.va || 'CENTER'}" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">${paras}</hp:subList><hp:cellAddr colAddr="${c.c}" rowAddr="${c.r}"/><hp:cellSpan colSpan="${c.cs}" rowSpan="${c.rs}"/><hp:cellSz width="${w}" height="${h}"/><hp:cellMargin left="141" right="141" top="57" bottom="57"/></hp:tc>`;
+      }).join('')}</hp:tr>`).join('');
+      return `<hp:tbl id="${tblId++}" zOrder="${z++}" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="0" rowCnt="${rowH.length}" colCnt="${colW.length}" cellSpacing="0" borderFillIDRef="1" noAdjust="0"><hp:sz width="${Wt}" widthRelTo="ABSOLUTE" height="${Ht}" heightRelTo="ABSOLUTE" protect="0"/><hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="PARA" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/><hp:outMargin left="0" right="0" top="0" bottom="0"/><hp:inMargin left="141" right="141" top="57" bottom="57"/>${trs}</hp:tbl>`;
+    };
+
+    const paras = [];
+    layouts.forEach((L, pi) => {
+      let cursor = mg.t; // 다음 블록이 놓일 y(pt)
+      const cl = mg.l, cr = L.W - mg.r, cc = (cl + cr) / 2;
+      L.blocks.forEach((b, bi) => {
+        const prev = Math.max(0, b.top - cursor) * PT2HU;
+        const pageBreak = pi > 0 && bi === 0 ? 1 : 0;
+        if (b.kind === 't') {
+          const off = Math.max(0, b.x1 - cl);
+          const twidth = b.colW.reduce((a, v) => a + v, 0);
+          const centered = Math.abs((b.x1 + b.x1 + twidth) / 2 - cc) < 4 && off > 6;
+          const pp = hb.paraPr({ align: centered ? 'CENTER' : 'LEFT', left: centered ? 0 : off * PT2HU, prev, ls: 100 });
+          const cp = hb.charPr({ size: 1 });
+          paras.push({ pp, pageBreak, inner: `<hp:run charPrIDRef="${cp}">${tableXml(b)}<hp:t/></hp:run>` });
+          cursor = b.top + b.rowH.reduce((a, v) => a + v, 0);
+        } else {
+          let align = b.alignHint && b.alignHint !== 'LEFT' ? b.alignHint : 'LEFT';
+          let left = 0;
+          const lg = b.x1 - cl, rg = cr - b.x2;
+          if (!b.alignHint) {
+            if (Math.abs((b.x1 + b.x2) / 2 - cc) < 6 && lg > 24) align = 'CENTER';
+            else if (rg < 8 && lg > 60) align = 'RIGHT';
+          }
+          if (align === 'LEFT' || align === 'JUSTIFY') left = Math.max(0, lg);
+          const pp = hb.paraPr({ align, left: left * PT2HU, prev, ls: b.ls || 160, oneLine: !!b.oneLine });
+          paras.push({ pp, pageBreak, inner: runXml(b.runs.length ? b.runs : [{ t: '', size: b.size }]) });
+          cursor = b.top + b.size * (b.ls || 160) / 100;
+        }
+      });
+      if (!L.blocks.length) {
+        const pp = hb.paraPr({});
+        paras.push({ pp, pageBreak: pi > 0 ? 1 : 0, inner: `<hp:run charPrIDRef="0"/>` });
+      }
+    });
+    if (!paras.length) paras.push({ pp: 0, pageBreak: 0, inner: '<hp:run charPrIDRef="0"/>' });
+    void contentW;
+
+    const body = paras.map((p, i) => {
+      const inner = i === 0 ? `<hp:run charPrIDRef="0">${secPr}</hp:run>${p.inner}` : p.inner;
+      return `<hp:p id="0" paraPrIDRef="${p.pp}" styleIDRef="0" pageBreak="${p.pageBreak}" columnBreak="0" merged="0">${inner}</hp:p>`;
+    }).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>${rootOpen}${body}</hs:sec>`;
+  }
+
+  function layoutText(layouts) {
+    const out = [];
+    for (const L of layouts) for (const b of L.blocks) {
+      if (b.kind === 'p') out.push(b.runs.map((r) => r.t).join(''));
+      else for (const c of b.cells) for (const p of c.paras || []) { const s = p.runs.map((r) => r.t).join('').trim(); if (s) out.push(s); }
+    }
+    return out.join('\r\n');
+  }
+
+  async function buildHwpx(skeletonBytes, layouts, JSZip, opts = {}) {
+    const sk = await JSZip.loadAsync(skeletonBytes);
+    const headXml = await sk.file('Contents/header.xml').async('string');
+    const secXml = await sk.file('Contents/section0.xml').async('string');
+    const hb = new HeaderBuilder(headXml);
+    const section = buildSection(secXml, layouts, hb);
+    const header = hb.toXml();
+    const out = new JSZip();
+    out.file('mimetype', 'application/hwp+zip', { compression: 'STORE' });
+    const now = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    for (const name of Object.keys(sk.files)) {
+      const f = sk.files[name];
+      if (f.dir || name === 'mimetype') continue;
+      if (name === 'Contents/section0.xml') out.file(name, section);
+      else if (name === 'Contents/header.xml') out.file(name, header);
+      else if (name === 'Preview/PrvText.txt') out.file(name, layoutText(layouts).slice(0, 1024) || ' ');
+      else if (name === 'Preview/PrvImage.png' && opts.previewPng) out.file(name, opts.previewPng);
+      else if (name === 'Contents/content.hpf') {
+        let x = await f.async('string');
+        x = x.replace('<opf:title/>', `<opf:title>${esc(opts.title || '')}</opf:title>`)
+          .replace(/synthetic-fixture-author/g, esc(opts.author || '양식 되살리기'))
+          .replace(/(name="CreatedDate" content="text">)[^<]*/, `$1${now}`)
+          .replace(/(name="ModifiedDate" content="text">)[^<]*/, `$1${now}`)
+          .replace(/(name="date" content="text">)[^<]*/, '$1');
+        out.file(name, x);
+      } else out.file(name, await f.async('uint8array'));
+    }
+    const bytes = await out.generateAsync({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 }, mimeType: 'application/hwp+zip' });
+    return { bytes, stats: statsOf(layouts) };
+  }
+
+  function statsOf(layouts) {
+    let tables = 0, cells = 0, paras = 0;
+    for (const L of layouts) for (const b of L.blocks) { if (b.kind === 't') { tables++; cells += b.cells.length; } else paras++; }
+    return { pages: layouts.length, tables, cells, paras };
+  }
+
+  /* ============================================================
+   * 4. hwpx 검사·잠금 해제
+   * ============================================================ */
+  async function inspectHwpx(bytes, JSZip) {
+    let zip;
+    try { zip = await JSZip.loadAsync(bytes); } catch (e) { return { ok: false, reason: 'notzip' }; }
+    const names = Object.keys(zip.files);
+    const manifest = zip.file('META-INF/manifest.xml') ? await zip.file('META-INF/manifest.xml').async('string') : '';
+    const secs = names.filter((n) => /^Contents\/section\d+\.xml$/.test(n)).sort();
+    const prv = zip.file('Preview/PrvImage.png') ? await zip.file('Preview/PrvImage.png').async('uint8array') : null;
+    let readable = secs.length > 0;
+    for (const s of secs) {
+      const head = (await zip.file(s).async('uint8array')).slice(0, 64);
+      const txt = String.fromCharCode(...head);
+      if (!/^\s*(﻿)?<\?xml|^\s*</.test(txt)) readable = false;
+    }
+    const encrypted = /encryption/i.test(manifest) || !readable;
+    let locks = 0;
+    if (!encrypted) {
+      for (const s of secs) {
+        const x = await zip.file(s).async('string');
+        locks += (x.match(/\b(protect|lock)="1"/g) || []).length;
+      }
+      const h = zip.file('Contents/header.xml') ? await zip.file('Contents/header.xml').async('string') : '';
+      if (/lockForm="1"/.test(h)) locks++;
+    }
+    return { ok: true, zip, encrypted, locks, sections: secs, preview: prv };
+  }
+
+  async function unlockHwpx(zip, JSZip) {
+    const out = new JSZip();
+    out.file('mimetype', 'application/hwp+zip', { compression: 'STORE' });
+    let changed = 0;
+    for (const name of Object.keys(zip.files)) {
+      const f = zip.files[name];
+      if (f.dir || name === 'mimetype') continue;
+      if (/^Contents\/(section\d+|header)\.xml$/.test(name)) {
+        let x = await f.async('string');
+        x = x.replace(/\b(protect|lock|lockForm)="1"/g, (m, k) => { changed++; return `${k}="0"`; });
+        out.file(name, x);
+      } else out.file(name, await f.async('uint8array'));
+    }
+    const bytes = await out.generateAsync({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 }, mimeType: 'application/hwp+zip' });
+    return { bytes, changed };
+  }
+
+  const PALETTE = [[255, 0, 0], [0, 0, 255], [0, 128, 0], [128, 0, 128], [0, 0, 128], [128, 0, 0], [0, 128, 128], [192, 0, 0], [0, 112, 192], [255, 0, 255], [0, 176, 80]];
+  /** 렌더링한 페이지 픽셀(RGBA)에서 글자색을 읽는 함수 만들기. scale = 픽셀/pt */
+  function makeColorSampler(data, width, height, scale) {
+    return function (x1, y1, x2, y2) {
+      const X1 = clamp(Math.floor(x1 * scale), 0, width - 1), X2 = clamp(Math.ceil(x2 * scale), 0, width - 1);
+      const Y1 = clamp(Math.floor(y1 * scale), 0, height - 1), Y2 = clamp(Math.ceil(y2 * scale), 0, height - 1);
+      const step = Math.max(1, Math.floor(Math.max(X2 - X1, Y2 - Y1) / 80));
+      const px = [];
+      for (let y = Y1; y <= Y2; y += step) for (let x = X1; x <= X2; x += step) {
+        const i = (y * width + x) * 4;
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        px.push([r, g, b, 0.299 * r + 0.587 * g + 0.114 * b]);
+      }
+      if (px.length < 4) return '#000000';
+      px.sort((a, b) => a[3] - b[3]);
+      const bg = px[px.length - 1];
+      const ink = px.slice(0, Math.max(2, Math.floor(px.length * 0.12))).filter((p) => bg[3] - p[3] > 60);
+      if (ink.length < 2) return '#000000';
+      const avg = [0, 1, 2].map((k) => ink.reduce((s, p) => s + p[k], 0) / ink.length);
+      const sat = Math.max(...avg) - Math.min(...avg);
+      if (sat < 45) return '#000000';
+      const hx = (v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0');
+      // 한글 기본 색상표로 맞춤(안티에일리어싱 번짐 보정)
+      let best = null, bd = 1e9;
+      for (const c of PALETTE) { const d = Math.hypot(c[0] - avg[0], c[1] - avg[1], c[2] - avg[2]); if (d < bd) { bd = d; best = c; } }
+      const out = best && bd < 110 ? best : avg;
+      return ('#' + hx(out[0]) + hx(out[1]) + hx(out[2])).toUpperCase();
+    };
+  }
+
+  const api = { hwpWidth, fitSpacing, makeColorSampler, extractPdfPage, aiToLayout, buildHwpx, inspectHwpx, unlockHwpx, statsOf, AI_PROMPT, MM2PT, normalizeFont, buildLayoutFromPrimitives };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.FormEngine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function(){
+'use strict';
+const SKELETON_B64 = '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';
+const E = window.FormEngine;
+const $ = (id) => document.getElementById(id);
+const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.js';
+
+const b64ToBytes = (b) => { const s = atob(b); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+const SKELETON = b64ToBytes(SKELETON_B64);
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k,v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} } };
+
+/* ── 런타임 기능(claude.ai 안에서만) ── */
+let sampleCap = null, downloadsCap = null;
+if (window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('sample').then(async (s) => {
+    if (!s) return;
+    const lim = await s.limits().catch(() => null);
+    if (lim && lim.images) { sampleCap = { fn: s, lim }; enableClaude(); }
+  }).catch(() => {}).finally(updateAiState);
+  window.claude.use('downloads').then((d) => { downloadsCap = d || null; }).catch(() => {});
+} else setTimeout(updateAiState, 0);
+
+function enableClaude(){
+  $('engClaude').disabled = false; $('engClaudeL').setAttribute('aria-disabled', 'false');
+  $('claudeHint').hidden = false;
+  if (!$('gemKey').value) $('engClaude').checked = true;
+  syncEngine();
+}
+function engine(){ return document.querySelector('input[name=engine]:checked').value; }
+function syncEngine(){ $('gemFields').hidden = engine() !== 'gemini'; updateAiState(); }
+const gemKey = () => $('gemKey').value.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
+const keyLooksValid = (k) => /^(AQ\.|AIza)[A-Za-z0-9._-]{10,}$/.test(k);
+function aiReady(){ return engine() === 'claude' ? !!sampleCap : !!gemKey(); }
+function updateAiState(){
+  const s = $('aiState');
+  let txt, cls;
+  if (engine() === 'claude') { txt = sampleCap ? 'Claude 준비됨' : 'Claude 사용 불가'; cls = sampleCap ? 'ok' : 'warn'; }
+  else { const k = gemKey(); txt = !k ? '키 필요' : keyLooksValid(k) ? 'Gemini 준비됨' : '키 형식 확인'; cls = !k ? '' : keyLooksValid(k) ? 'ok' : 'warn'; }
+  s.textContent = txt; s.className = 'pill ' + cls;
+  const kh = $('keyHint'); const k2 = gemKey();
+  if (kh) kh.style.color = k2 && !keyLooksValid(k2) ? 'var(--warn)' : '';
+}
+document.querySelectorAll('input[name=engine]').forEach((r) => r.addEventListener('change', syncEngine));
+const savedKey = store.get('fr.gemKey'); if (savedKey) { $('gemKey').value = savedKey; $('gemRemember').checked = true; }
+const savedModel = store.get('fr.gemModel'); if (savedModel) $('gemModel').value = savedModel;
+$('gemKey').addEventListener('input', () => { if ($('gemRemember').checked) store.set('fr.gemKey', gemKey()); updateAiState(); });
+$('gemRemember').addEventListener('change', () => store.set('fr.gemKey', $('gemRemember').checked ? gemKey() : null));
+$('gemModel').addEventListener('change', () => store.set('fr.gemModel', $('gemModel').value));
+syncEngine();
+
+/* ── 모드 안내 ── */
+const MODE_HINT = {
+  auto: '글자 있는 PDF는 좌표로, 스캔본·사진은 AI로 복원합니다.',
+  rule: 'AI 없이 PDF의 선·글자 좌표만 씁니다. 스캔본은 안 됩니다.',
+  ai: '모든 페이지를 AI가 읽습니다. PDF 글자도 함께 보내 오타를 줄입니다.',
+};
+const mode = () => document.querySelector('input[name=mode]:checked').value;
+document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => {
+  $('modeHint').textContent = MODE_HINT[mode()];
+  if (mode() === 'ai') $('aiBox').open = true;
+}));
+
+/* ── 로그 ── */
+function log(msg, cls = ''){ if (cls === 'run') setFlow(2, 'now', msg); const li = document.createElement('li'); li.className = cls; li.textContent = msg; $('log').appendChild(li); li.scrollIntoView({ block: 'nearest' }); return li; }
+function clearLog(){ $('log').replaceChildren(); }
+
+/* ── 상태 ── */
+let currentFile = null;
+let state = null; // { title, badge, pages:[{orig:canvas|img|null, layout, method}], notices:[], output:{kind:'build'|'bytes', bytes?} }
+
+/* ── 파일 선택 ── */
+const drop = $('drop');
+['dragenter','dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) setFile(f); });
+$('file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) setFile(f); });
+const ROUTE = {
+  pdf: ['PDF', '글자가 있으면 <b>좌표 복원</b>, 스캔본이면 <b>AI 인식</b>'],
+  png: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'], jpg: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'],
+  jpeg: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'], webp: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'],
+  hwpx: ['hwpx', '잠금만 걸렸으면 <b>잠금 해제</b>, 배포용이면 PDF 안내'],
+  hwp: ['hwp', '직접 읽을 수 없어요 · <b>PDF로 인쇄</b> 후 올려 주세요'],
+};
+function setFlow(n, state, text){ const li = $('f' + n); li.dataset.state = state || ''; if (text != null) $('f' + n + 's').textContent = text; }
+function setFile(f){
+  currentFile = f;
+  const size = f.size / 1024 < 1024 ? (f.size / 1024).toFixed(0) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB';
+  $('drop').classList.add('has');
+  $('dropTitle').textContent = f.name;
+  $('dropSub').textContent = size + ' · 눌러서 다른 파일 선택';
+  const r = ROUTE[extOf(f.name)];
+  $('route').hidden = !r;
+  if (r) $('route').innerHTML = `<span class="arrow" aria-hidden="true">→</span><span>${r[1]}</span>`;
+  $('run').disabled = false;
+  $('outName').value = f.name.replace(/\.[^.]+$/, '') + '_편집용';
+  setFlow(1, 'done', f.name);
+  setFlow(2, 'now', '아래 버튼을 누르세요');
+  setFlow(3, '', '한글에서 바로 편집');
+}
+const extOf = (n) => (n.match(/\.([^.]+)$/) || [, ''])[1].toLowerCase();
+
+/* ── 이미지 유틸 ── */
+const canvasBlob = (c, type = 'image/jpeg', q = 0.9) => new Promise((res) => c.toBlob(res, type, q));
+async function fitBlob(canvas){
+  const maxBytes = (sampleCap && sampleCap.lim.images && sampleCap.lim.images.maxBytes) || 4.5e6;
+  let c = canvas, q = 0.9;
+  for (let i = 0; i < 6; i++) {
+    const b = await canvasBlob(c, 'image/jpeg', q);
+    if (b.size <= maxBytes) return b;
+    const s = document.createElement('canvas'); s.width = Math.round(c.width * 0.8); s.height = Math.round(c.height * 0.8);
+    s.getContext('2d').drawImage(c, 0, 0, s.width, s.height); c = s; q = 0.85;
+  }
+  return canvasBlob(c, 'image/jpeg', 0.8);
+}
+const blobToB64 = (b) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(b); });
+function loadImage(src){ return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('이미지를 열 수 없습니다.')); i.src = src; }); }
+function imageToCanvas(img, maxSide = 2400){
+  const s = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); return c;
+}
+
+/* ── AI 호출 ── */
+function parseJsonLoose(t){
+  t = String(t || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  return JSON.parse(a >= 0 ? t.slice(a, b + 1) : t);
+}
+async function callAI(blob, pageMm, extraText){
+  let prompt = E.AI_PROMPT + `\n\n이 페이지 용지 크기(추정): ${pageMm.w.toFixed(0)}×${pageMm.h.toFixed(0)}mm.`;
+  if (extraText) prompt += `\n\n참고: 이 페이지에서 직접 추출한 정확한 글자(위→아래 순). 글자는 이것을 우선 따르세요.\n${extraText.slice(0, 8000)}`;
+  if (engine() === 'claude') {
+    if (!sampleCap) throw new Error('Claude를 쓸 수 없는 화면입니다. Gemini 키를 넣어 주세요.');
+    try { return await sampleCap.fn.json(prompt, { images: [blob], modelTier: 'complex' }); }
+    catch (e) {
+      if (e && e.code === 'invalid_json' && e.text) return parseJsonLoose(e.text);
+      if (e && e.code === 'rate_limited') throw new Error('AI 요청이 많아 잠시 막혔습니다. 조금 뒤 다시 시도해 주세요.');
+      throw new Error('Claude 인식 실패: ' + ((e && e.message) || e));
+    }
+  }
+  const key = gemKey();
+  if (!key) throw new Error('Gemini API 키가 없습니다. AI 인식 설정에 키를 넣어 주세요.');
+  const model = $('gemModel').value;
+  const body = { contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: blob.type || 'image/jpeg', data: await blobToB64(blob) } }] }],
+    generationConfig: { responseMimeType: 'application/json', temperature: 0 } };
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
+  } catch (e) {
+    throw new Error('Gemini 서버에 연결하지 못했습니다. claude.ai 미리보기 안에서는 외부 연결이 막혀 있으니 Claude 엔진을 쓰거나, 내려받은 HTML을 edu-hub 같은 웹 주소에 올려 사용하세요.');
+  }
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = (j.error && j.error.message) || '응답을 읽지 못했습니다.';
+    if (res.status === 400 && /api key/i.test(msg) || res.status === 401 || res.status === 403)
+      throw new Error('Gemini가 키를 받아들이지 않았습니다. AI Studio에서 발급한 키(AQ. 또는 AIza로 시작)를 빈칸 없이 붙여 넣었는지 확인해 주세요. (' + res.status + ')');
+    throw new Error('Gemini 오류 ' + res.status + ': ' + msg);
+  }
+  const text = (((j.candidates || [])[0] || {}).content || {}).parts?.map((p) => p.text || '').join('') || '';
+  if (!text) throw new Error('Gemini가 빈 응답을 보냈습니다.');
+  return parseJsonLoose(text);
+}
+
+/* ── 변환 실행 ── */
+$('run').addEventListener('click', async () => {
+  if (!currentFile) return;
+  $('run').disabled = true;
+  const old = $('run').textContent; $('run').innerHTML = '<span class="spin" aria-hidden="true"></span> 변환 중…';
+  clearLog();
+  setFlow(2, 'now', '변환 중…'); setFlow(3, '', '한글에서 바로 편집');
+  try {
+    const ext = extOf(currentFile.name);
+    if (ext === 'pdf') await convertPdf(currentFile);
+    else if (['png','jpg','jpeg','webp'].includes(ext)) await convertImage(currentFile);
+    else if (ext === 'hwpx') await convertHwpx(currentFile);
+    else if (ext === 'hwp') explainHwp();
+    else log('지원하지 않는 형식입니다. PDF, hwpx, hwp, PNG/JPG를 올려 주세요.', 'err');
+  } catch (e) {
+    console.error(e); log(e.message || String(e), 'err'); setFlow(2, 'warn', '변환하지 못했습니다');
+  } finally { $('run').disabled = false; $('run').textContent = old; }
+});
+
+async function convertPdf(file){
+  if (!window.pdfjsLib) throw new Error('PDF 엔진을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.');
+  const data = new Uint8Array(await file.arrayBuffer());
+  let doc;
+  try { doc = await pdfjsLib.getDocument({ data, cMapUrl: PDFJS_BASE + 'cmaps/', cMapPacked: true, standardFontDataUrl: PDFJS_BASE + 'standard_fonts/', isEvalSupported: false }).promise; }
+  catch (e) { throw new Error(e && e.name === 'PasswordException' ? '암호가 걸린 PDF입니다. 암호를 해제한 PDF를 올려 주세요.' : 'PDF를 열 수 없습니다: ' + (e.message || e)); }
+  const N = Math.min(doc.numPages, 40);
+  if (doc.numPages > 40) log(`페이지가 많아 앞 40쪽만 변환합니다.`, 'warn');
+  const m = mode();
+  const pages = [];
+  for (let i = 1; i <= N; i++) {
+    const li = log(`${i}/${N}쪽 읽는 중…`, 'run');
+    const page = await doc.getPage(i);
+    const vp1 = page.getViewport({ scale: 1 });
+    const scale = Math.min(2.2, 2400 / Math.max(vp1.width, vp1.height));
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement('canvas'); canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+    const g = canvas.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: g, viewport: vp }).promise;
+    let ruleLayout = null;
+    let sampleColor = null;
+    try { const img = g.getImageData(0, 0, canvas.width, canvas.height); sampleColor = E.makeColorSampler(img.data, canvas.width, canvas.height, scale); } catch (e) { /* 색 읽기 생략 */ }
+    try { ruleLayout = await E.extractPdfPage(page, pdfjsLib, { sampleColor }); } catch (e) { console.warn(e); }
+    const hasText = ruleLayout && ruleLayout.textChars >= 15;
+    let useAI = m === 'ai' || (m === 'auto' && !hasText);
+    if (m === 'rule' && !hasText) { li.className = 'warn'; li.textContent = `${i}쪽: 글자가 없는 페이지(스캔본)라 좌표 복원이 어렵습니다. AI 인식을 선택해 주세요.`; }
+    if (useAI && !aiReady()) {
+      if (hasText) { useAI = false; log(`${i}쪽: AI 설정이 없어 좌표 복원으로 진행합니다.`, 'warn'); }
+      else { li.className = 'err'; li.textContent = `${i}쪽: 스캔본입니다. AI 인식 설정(엔진·키)을 먼저 해 주세요.`; pages.push({ orig: canvas, layout: ruleLayout || E.aiToLayout({ blocks: [] }), method: 'none' }); continue; }
+    }
+    if (useAI) {
+      li.textContent = `${i}/${N}쪽 AI가 읽는 중… (보통 20~60초)`;
+      const extra = hasText ? textLines(ruleLayout) : '';
+      try {
+        const json = await callAI(await fitBlob(canvas), { w: vp1.width / E.MM2PT, h: vp1.height / E.MM2PT }, extra);
+        const L = E.aiToLayout(json, { w: vp1.width / E.MM2PT, h: vp1.height / E.MM2PT });
+        pages.push({ orig: canvas, layout: L, method: 'ai' });
+        const s = E.statsOf([L]); li.className = 'ok'; li.textContent = `${i}쪽 AI 인식 완료 · 표 ${s.tables}개, 칸 ${s.cells}개`;
+      } catch (e) {
+        if (ruleLayout && hasText) { pages.push({ orig: canvas, layout: ruleLayout, method: 'rule' }); li.className = 'warn'; li.textContent = `${i}쪽 AI 실패 → 좌표 복원으로 대체 (${e.message})`; }
+        else { pages.push({ orig: canvas, layout: E.aiToLayout({ blocks: [] }), method: 'none' }); li.className = 'err'; li.textContent = `${i}쪽: ${e.message}`; }
+      }
+    } else if (ruleLayout && hasText) {
+      pages.push({ orig: canvas, layout: ruleLayout, method: 'rule' });
+      const s = E.statsOf([ruleLayout]); li.className = 'ok'; li.textContent = `${i}쪽 좌표 복원 완료 · 표 ${s.tables}개, 칸 ${s.cells}개, 문단 ${s.paras}개`;
+    } else if (!li.className.match(/warn|err/)) {
+      pages.push({ orig: canvas, layout: ruleLayout || E.aiToLayout({ blocks: [] }), method: 'none' });
+    } else pages.push({ orig: canvas, layout: ruleLayout || E.aiToLayout({ blocks: [] }), method: 'none' });
+  }
+  const notices = [];
+  if (pages.some((p) => p.method === 'ai')) notices.push({ cls: '', html: '<p>AI가 읽은 페이지는 글자나 칸 나눔이 원본과 다를 수 있습니다. 한글에서 열어 한 번 대조해 주세요.</p>' });
+  finish({ title: file.name.replace(/\.[^.]+$/, ''), pages, notices, output: { kind: 'build' } });
+}
+function textLines(L){
+  const out = [];
+  for (const b of L.blocks) {
+    if (b.kind === 'p') out.push(b.runs.map((r) => r.t).join(''));
+    else for (const c of b.cells) { const t = (c.paras || []).map((p) => p.runs.map((r) => r.t).join('').trim()).filter(Boolean).join(' / '); if (t) out.push(`[표 칸] ${t}`); }
+  }
+  return out.join('\n');
+}
+
+async function convertImage(file){
+  if (!aiReady()) { $('aiBox').open = true; throw new Error('사진·스캔 이미지는 AI 인식이 필요합니다. AI 인식 설정에서 엔진(Claude 또는 Gemini 키)을 준비해 주세요.'); }
+  const url = URL.createObjectURL(file);
+  const img = await loadImage(url);
+  const canvas = imageToCanvas(img);
+  URL.revokeObjectURL(url);
+  const ratio = canvas.height / canvas.width;
+  const pageMm = ratio >= 1 ? { w: 210, h: 297 } : { w: 297, h: 210 };
+  const li = log('AI가 이미지를 읽는 중… (보통 20~60초)', 'run');
+  const json = await callAI(await fitBlob(canvas), pageMm, '');
+  const L = E.aiToLayout(json, pageMm);
+  const s = E.statsOf([L]); li.className = 'ok'; li.textContent = `AI 인식 완료 · 표 ${s.tables}개, 칸 ${s.cells}개`;
+  finish({ title: file.name.replace(/\.[^.]+$/, ''), pages: [{ orig: canvas, layout: L, method: 'ai' }],
+    notices: [{ cls: '', html: '<p>사진·스캔본은 AI가 읽은 결과입니다. 글자와 칸 나눔을 한글에서 한 번 대조해 주세요.</p>' }], output: { kind: 'build' } });
+}
+
+async function convertHwpx(file){
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const info = await E.inspectHwpx(bytes, JSZip);
+  if (!info.ok) throw new Error('hwpx 파일을 열 수 없습니다. 확장자만 바뀐 다른 형식인지 확인해 주세요.');
+  if (!info.encrypted) {
+    const { bytes: out, changed } = await E.unlockHwpx(info.zip, JSZip);
+    const prv = info.preview ? await loadImage(URL.createObjectURL(new Blob([info.preview], { type: 'image/png' }))).catch(() => null) : null;
+    const notices = changed
+      ? [{ cls: 'ok', html: `<p><b>편집 잠금 ${changed}곳을 풀었습니다.</b> 표·글자·서식은 원본 그대로입니다.</p>` }]
+      : [{ cls: '', html: '<p>이 파일에는 풀 잠금이 없습니다. 한글에서 여전히 편집이 막힌다면 <b>보기 → 문서 보안</b>이나 양식 모드(누름틀만 입력 가능)가 켜져 있는지 확인해 주세요. 원본을 다시 저장한 사본을 드립니다.</p>' }];
+    log(changed ? `잠금 ${changed}곳 해제 완료` : '잠금 속성이 없는 hwpx입니다.', changed ? 'ok' : 'warn');
+    finish({ title: file.name.replace(/\.[^.]+$/, ''), unlock: true, pages: [{ orig: prv, layout: null, method: 'unlock' }], notices, output: { kind: 'bytes', bytes: out } });
+    return;
+  }
+  // 배포용(암호화)
+  log('배포용(암호화) 문서입니다. 본문을 직접 읽을 수 없습니다.', 'warn');
+  const notices = [{ cls: '', html: '<p><b>배포용 문서는 내용이 암호화되어 있어 직접 읽을 수 없습니다.</b></p><p>가장 정확한 방법: 한글이나 한컴오피스 뷰어에서 열고 <b>인쇄 → 프린터 “Microsoft Print to PDF” 또는 “한컴 PDF”</b>로 저장한 뒤, 그 PDF를 여기에 올려 주세요. 모든 페이지가 좌표 그대로 복원됩니다.</p>' }];
+  if (info.preview && aiReady()) {
+    const img = await loadImage(URL.createObjectURL(new Blob([info.preview], { type: 'image/png' })));
+    const canvas = imageToCanvas(img);
+    notices.push({ cls: '', html: '<p>파일에 들어 있는 첫 쪽 미리보기 그림으로 AI 복원을 시도했습니다. 해상도가 낮아 작은 글자는 틀릴 수 있습니다.</p>' });
+    const li = log('첫 쪽 미리보기를 AI가 읽는 중…', 'run');
+    try {
+      const json = await callAI(await fitBlob(canvas), { w: 210, h: 297 }, '');
+      const L = E.aiToLayout(json, { w: 210, h: 297 });
+      li.className = 'ok'; li.textContent = '첫 쪽 AI 복원 완료';
+      finish({ title: file.name.replace(/\.[^.]+$/, ''), pages: [{ orig: canvas, layout: L, method: 'ai' }], notices, output: { kind: 'build' } });
+      return;
+    } catch (e) { li.className = 'err'; li.textContent = e.message; }
+  }
+  showNoticeOnly(file.name, notices);
+}
+function explainHwp(){
+  log('hwp(한글 97~) 파일은 브라우저에서 읽을 수 없습니다.', 'warn');
+  showNoticeOnly(currentFile.name, [{ cls: '', html: '<p><b>.hwp 파일은 이 화면에서 직접 읽을 수 없습니다.</b></p><p>편집이 되는 hwp라면 한글에서 <b>다른 이름으로 저장 → hwpx</b>로 바꿔 올려 주세요. 배포용·잠긴 hwp라면 <b>인쇄 → PDF로 저장</b>한 PDF를 올리면 표를 그대로 복원합니다.</p>' }]);
+}
+function showNoticeOnly(name, notices){
+  state = { title: name.replace(/\.[^.]+$/, ''), pages: [], notices, output: null };
+  render();
+  setFlow(2, 'warn', '안내를 확인해 주세요');
+}
+
+function finish(s){
+  state = s; state.cur = 0; render();
+  const st = E.statsOf(s.pages.map((p) => p.layout).filter(Boolean));
+  const ok = s.pages.some((p) => p.method !== 'none');
+  setFlow(2, ok ? 'done' : 'warn', s.unlock ? '잠금 해제 완료' : ok ? `${st.pages}쪽 · 표 ${st.tables}개 복원` : '복원된 페이지 없음');
+  setFlow(3, ok ? 'now' : '', ok ? '준비됨 · 오른쪽 위 버튼' : '한글에서 바로 편집');
+}
+
+/* ── 화면 그리기 ── */
+function render(){
+  const s = state;
+  $('resTitle').textContent = s.title;
+  const methods = new Set(s.pages.map((p) => p.method));
+  const badge = $('resBadge');
+  if (s.example) { badge.className = 'badge example'; badge.textContent = '예시'; }
+  else if (s.unlock) { badge.className = 'badge unlock'; badge.textContent = '잠금 해제'; }
+  else if (methods.has('ai') && methods.has('rule')) { badge.className = 'badge ai'; badge.textContent = '좌표 + AI'; }
+  else if (methods.has('ai')) { badge.className = 'badge ai'; badge.textContent = 'AI 인식'; }
+  else if (methods.has('rule')) { badge.className = 'badge rule'; badge.textContent = '좌표 복원'; }
+  else { badge.className = 'badge'; badge.textContent = '변환 불가'; }
+  $('download').disabled = !s.output;
+  const layouts = s.pages.map((p) => p.layout).filter(Boolean);
+  const st = E.statsOf(layouts);
+  $('stats').innerHTML = s.unlock || !layouts.length ? '' :
+    `<span><b>${st.pages}</b>쪽</span><span><b>${st.tables}</b>개 표</span><span><b>${st.cells}</b>칸</span><span><b>${st.paras}</b>개 문단</span>`;
+  $('notices').replaceChildren(...(s.notices || []).map((n) => { const d = document.createElement('div'); d.className = 'notice ' + (n.cls || ''); d.innerHTML = n.html; return d; }));
+  const pg = $('pages');
+  pg.hidden = s.pages.length < 2;
+  pg.replaceChildren(...s.pages.map((p, i) => { const b = document.createElement('button'); b.textContent = (i + 1) + '쪽'; b.setAttribute('aria-pressed', String(i === (s.cur || 0))); b.onclick = () => { s.cur = i; render(); }; return b; }));
+  showPage(s.pages[s.cur || 0]);
+}
+function showPage(p){
+  const o = $('origStage'), r = $('recStage');
+  o.replaceChildren(); r.replaceChildren();
+  $('origMeta').textContent = ''; $('recMeta').textContent = '';
+  if (!p) { o.innerHTML = '<div class="placeholder">미리볼 페이지가 없습니다.</div>'; r.innerHTML = '<div class="placeholder">안내를 확인해 주세요.</div>'; return; }
+  if (p.orig) { const el = p.orig.tagName === 'CANVAS' ? p.orig : p.orig; o.appendChild(el); }
+  else o.innerHTML = '<div class="placeholder">예시 양식입니다.<br>파일을 올리면 원본 페이지가 여기에 나옵니다.</div>';
+  if (p.layout) {
+    r.appendChild(renderSheet(p.layout));
+    $('recMeta').textContent = `${(p.layout.W / E.MM2PT).toFixed(0)}×${(p.layout.H / E.MM2PT).toFixed(0)}mm`;
+  } else if (p.method === 'unlock') {
+    r.innerHTML = '<div class="placeholder">원본 서식을 그대로 둔 채 잠금만 풀었습니다.<br>내려받아 한글에서 열어 보세요.</div>';
+  }
+  if (p.orig && p.orig.tagName === 'CANVAS') $('origMeta').textContent = p.method === 'ai' ? 'AI에 보낸 이미지' : '';
+}
+
+/* 레이아웃 → HTML 미리보기 (용지 폭 기준 %) */
+function renderSheet(L){
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.style.aspectRatio = `${L.W} / ${L.H}`;
+  const box = new ResizeObserver(() => draw());
+  let lastW = 0;
+  function draw(){
+    const w = sheet.clientWidth; if (!w || Math.abs(w - lastW) < 1) return; lastW = w;
+    const k = w / L.W; // pt → px
+    sheet.replaceChildren();
+    const fontCss = (f) => /바탕|명조|궁서/.test(f) ? '"Nanum Myeongjo","Noto Serif KR",serif' : /헤드라인/.test(f) ? '"IBM Plex Sans KR",sans-serif' : '"IBM Plex Sans KR","Malgun Gothic",sans-serif';
+    const runSpan = (r) => { const s = document.createElement('span'); s.textContent = r.t; s.style.fontSize = (r.size * k) + 'px'; s.style.fontFamily = fontCss(r.font || ''); if (r.bold || /헤드라인/.test(r.font || '')) s.style.fontWeight = '700'; if (r.italic) s.style.fontStyle = 'italic'; if (r.underline) s.style.textDecoration = 'underline'; if (r.color && r.color !== '#000000') s.style.color = r.color; if (r.sp) s.style.letterSpacing = (r.sp / 100 * r.size * k) + 'px'; return s; };
+    const cl = L.margin.l, cr = L.W - L.margin.r;
+    for (const b of L.blocks) {
+      if (b.kind === 'p') {
+        const d = document.createElement('div'); d.className = 'p';
+        d.style.top = (b.top * k) + 'px';
+        const al = b.alignHint || 'LEFT';
+        if (al === 'CENTER') { d.style.left = (cl * k) + 'px'; d.style.width = ((cr - cl) * k) + 'px'; d.style.textAlign = 'center'; }
+        else if (al === 'RIGHT') { d.style.left = (cl * k) + 'px'; d.style.width = ((cr - cl) * k) + 'px'; d.style.textAlign = 'right'; }
+        else d.style.left = (b.x1 * k) + 'px';
+        b.runs.forEach((r) => d.appendChild(runSpan(r)));
+        sheet.appendChild(d);
+      } else {
+        const t = document.createElement('table');
+        t.style.left = (b.x1 * k) + 'px'; t.style.top = (b.top * k) + 'px';
+        const tw = b.colW.reduce((a, v) => a + v, 0); t.style.width = (tw * k) + 'px';
+        const cg = document.createElement('colgroup');
+        b.colW.forEach((v) => { const c = document.createElement('col'); c.style.width = (v * k) + 'px'; cg.appendChild(c); });
+        t.appendChild(cg);
+        const rows = b.rowH.map((h) => { const tr = document.createElement('tr'); tr.style.height = (h * k) + 'px'; return tr; });
+        for (const c of b.cells) {
+          const td = document.createElement('td');
+          td.rowSpan = c.rs; td.colSpan = c.cs;
+          const bs = (s) => s.type === 'NONE' ? 'none' : `${Math.max(0.6, s.w * 2.835 * k)}px ${s.type === 'DOUBLE_SLIM' ? 'double' : s.type === 'DOT' ? 'dotted' : s.type === 'DASH' ? 'dashed' : 'solid'} #000`;
+          td.style.borderLeft = bs(c.b.l); td.style.borderRight = bs(c.b.r); td.style.borderTop = bs(c.b.t); td.style.borderBottom = bs(c.b.bm);
+          if (c.b.l.type === 'DOUBLE_SLIM' || c.b.r.type === 'DOUBLE_SLIM' || c.b.t.type === 'DOUBLE_SLIM' || c.b.bm.type === 'DOUBLE_SLIM') {
+            ['Left','Right','Top','Bottom'].forEach((sd) => { if (td.style['border' + sd + 'Style'] === 'double') td.style['border' + sd + 'Width'] = Math.max(3, 2.2 * k) + 'px'; });
+          }
+          const bgc = c.bg || 'transparent';
+          if (c.diag) td.style.background = `linear-gradient(to ${c.diag.kind === 'back' ? 'top right' : 'bottom right'}, ${bgc} calc(50% - 0.6px), #000 50%, ${bgc} calc(50% + 0.6px))`;
+          else if (c.bg) td.style.background = c.bg;
+          td.style.verticalAlign = c.va === 'TOP' ? 'top' : c.va === 'BOTTOM' ? 'bottom' : 'middle';
+          for (const p of c.paras || []) {
+            const d = document.createElement('p'); d.className = 'm';
+            d.style.textAlign = { CENTER: 'center', RIGHT: 'right', JUSTIFY: 'justify' }[p.align] || 'left';
+            if (p.indent) d.style.paddingLeft = (p.indent * k) + 'px';
+            const sz = (p.runs[0] && p.runs[0].size) || 10;
+            d.style.lineHeight = ((p.ls || 130) / 100 * sz * k) + 'px';
+            d.style.minHeight = (sz * k) + 'px';
+            p.runs.forEach((r) => d.appendChild(runSpan(r)));
+            td.appendChild(d);
+          }
+          rows[c.r].appendChild(td);
+        }
+        rows.forEach((tr) => t.appendChild(tr));
+        sheet.appendChild(t);
+      }
+    }
+  }
+  box.observe(sheet);
+  requestAnimationFrame(draw);
+  return sheet;
+}
+
+/* ── 내려받기 ── */
+$('download').addEventListener('click', async () => {
+  if (!state || !state.output) return;
+  const btn = $('download'); btn.disabled = true;
+  try {
+    let bytes;
+    if (state.output.kind === 'bytes') bytes = state.output.bytes;
+    else {
+      const layouts = state.pages.map((p) => p.layout).filter(Boolean);
+      let previewPng = null;
+      const first = state.pages[0] && state.pages[0].orig;
+      if (first && first.tagName === 'CANVAS') {
+        const c = document.createElement('canvas'); const s = 480 / first.width; c.width = 480; c.height = Math.round(first.height * s);
+        c.getContext('2d').drawImage(first, 0, 0, c.width, c.height);
+        const b = await canvasBlob(c, 'image/png'); previewPng = new Uint8Array(await b.arrayBuffer());
+      }
+      const name = ($('outName').value || state.title).trim();
+      const res = await E.buildHwpx(SKELETON, layouts, JSZip, { title: name, previewPng });
+      bytes = res.bytes;
+    }
+    await saveFile(bytes, ($('outName').value || state.title || '양식').trim().replace(/[\\/:*?"<>|]/g, '_'));
+  } catch (e) { console.error(e); log('파일을 만들지 못했습니다: ' + (e.message || e), 'err'); }
+  finally { btn.disabled = false; }
+});
+async function saveFile(bytes, base){
+  if (downloadsCap) {
+    // claude.ai 화면은 .hwpx 확장자를 직접 저장할 수 없어 .zip을 붙여 저장합니다.
+    try {
+      await downloadsCap.save({ filename: base + '.hwpx.zip', data: new Blob([bytes], { type: 'application/zip' }) });
+      log(`“${base}.hwpx.zip”으로 저장했습니다. 파일 이름 끝의 .zip을 지우면 한글에서 바로 열립니다.`, 'ok');
+      if (!state.example) setFlow(3, 'done', '저장 완료 · .zip 지우고 열기');
+    } catch (e) {
+      if (e && e.code === 'declined') log('저장을 취소했습니다.', 'warn');
+      else log('이 화면에서는 저장할 수 없습니다: ' + ((e && e.message) || e), 'err');
+    }
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/hwp+zip' }));
+  a.download = base + '.hwpx';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  log(`“${base}.hwpx”를 내려받았습니다.`, 'ok');
+  if (!state.example) setFlow(3, 'done', '내려받기 완료');
+}
+
+/* ── 예시 양식(처음 화면) ── */
+const SAMPLE = {"page":{"widthMm":210,"heightMm":297},"blocks":[
+ {"type":"paragraph","yMm":22,"xMm":20,"widthMm":170,"align":"center","fontSizePt":18,"bold":true,"font":"headline","text":"2026학년도 2학기 학부모 상담 신청서"},
+ {"type":"paragraph","yMm":36,"xMm":20,"widthMm":170,"align":"left","fontSizePt":10.5,"font":"serif","lineSpacing":170,"text":"학부모님, 안녕하십니까? 자녀의 학교생활과 진로에 대해 담임교사와 이야기 나눌 수 있도록\n상담 주간을 운영합니다. 아래 신청서를 작성하여 10월 30일(금)까지 담임교사에게 제출해 주십시오."},
+ {"type":"table","yMm":52,"xMm":20,"colWidthsMm":[28,32,22,30,22,36],"rowHeightsMm":[10,10,10,22,10],"cells":[
+  {"row":0,"col":0,"rowSpan":2,"text":"학생","align":"center","bold":true,"bg":"#E7ECEF","fontSizePt":10},
+  {"row":0,"col":1,"text":"학년 / 반","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":0,"col":2,"text":"   학년    반","colSpan":2,"align":"center"},
+  {"row":0,"col":4,"text":"번호","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":0,"col":5,"text":"","align":"center"},
+  {"row":1,"col":1,"text":"성명","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":1,"col":2,"colSpan":4,"text":""},
+  {"row":2,"col":0,"text":"희망 방법","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":2,"col":1,"colSpan":5,"text":"□ 대면     □ 전화     □ 화상","align":"left"},
+  {"row":3,"col":0,"text":"상담 내용","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":3,"col":1,"colSpan":5,"text":"","vAlign":"top"},
+  {"row":4,"col":0,"text":"희망 일시","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":4,"col":1,"colSpan":3,"text":"  월    일 (   )     시","align":"center"},
+  {"row":4,"col":4,"text":"연락처","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":4,"col":5,"text":""}]},
+ {"type":"paragraph","yMm":130,"xMm":20,"widthMm":170,"align":"right","fontSizePt":11,"font":"serif","text":"2026년      월      일"},
+ {"type":"paragraph","yMm":142,"xMm":20,"widthMm":170,"align":"right","fontSizePt":11,"font":"serif","text":"보호자            (서명 또는 인)"},
+ {"type":"paragraph","yMm":160,"xMm":20,"widthMm":170,"align":"center","fontSizePt":14,"bold":true,"font":"serif","text":"원묵고등학교장 귀하"}
+]};
+state = { title: '학부모 상담 신청서', example: true, pages: [{ orig: null, layout: E.aiToLayout(SAMPLE), method: 'ai' }], notices: [], output: { kind: 'build' }, cur: 0 };
+render();
+})();
+</script>
