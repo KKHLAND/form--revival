@@ -1,0 +1,743 @@
+<title>양식 되살리기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Myeongjo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 3초 안에 읽히는 작업대 — 맨 위 3단계 흐름(지금 어디인지), 왼쪽 한 가지 할 일, 오른쪽 결과와 내려받기 */
+:root{
+  --paper:#F2F4F3; --sheet:#FFFFFF; --ink:#16202A; --ink-2:#55626D; --rule:#D3DAD9; --rule-2:#E5EAE9;
+  --accent:#1E5C7A; --accent-ink:#FFFFFF; --accent-soft:#E0EDF3; --stamp:#B23A2E; --ok:#2B7A4B; --ok-soft:#E1F1E7; --warn:#9A6A12; --warn-soft:#F6EEDC;
+  --display:"Nanum Myeongjo","Noto Serif KR","AppleMyungjo",serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#10161B; --sheet:#182128; --ink:#E4EAEE; --ink-2:#A1AFB9; --rule:#2C3A44; --rule-2:#223039;
+  --accent:#6FB3D6; --accent-ink:#0B1A22; --accent-soft:#18303D; --stamp:#E07A6E; --ok:#6CC596; --ok-soft:#173226; --warn:#E0B25A; --warn-soft:#33291A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#10161B; --sheet:#182128; --ink:#E4EAEE; --ink-2:#A1AFB9; --rule:#2C3A44; --rule-2:#223039;
+  --accent:#6FB3D6; --accent-ink:#0B1A22; --accent-soft:#18303D; --stamp:#E07A6E; --ok:#6CC596; --ok-soft:#173226; --warn:#E0B25A; --warn-soft:#33291A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;margin:0}
+.wrap{max-width:1320px;margin:0 auto;padding-block:22px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.brand h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,32px);line-height:1.15;margin:0;letter-spacing:-.01em}
+.brand p{margin:0;font-size:16px;color:var(--ink-2)}
+.brand p b{color:var(--ink);font-weight:600}
+.privacy{font-size:12.5px;color:var(--ink-2);display:flex;gap:7px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+
+/* 3단계 흐름 */
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.flow li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 12px;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;min-width:0;position:relative}
+.flow .n{grid-row:span 2;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:16px;border:2px solid var(--rule);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.flow .t{font-weight:600;font-size:15px;line-height:1.2}
+.flow .s{font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.flow li[data-state="now"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.flow li[data-state="now"] .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.flow li[data-state="done"] .n{background:var(--ok);border-color:var(--ok);color:var(--accent-ink)}
+.flow li[data-state="done"] .s{color:var(--ok)}
+.flow li[data-state="warn"] .n{border-color:var(--warn);color:var(--warn)}
+.flow li[data-state="warn"] .s{color:var(--warn)}
+@media (max-width:640px){.flow{grid-template-columns:minmax(0,1fr);gap:6px}.flow li{padding:9px 12px}.flow .n{width:28px;height:28px;font-size:14px}}
+
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.step{display:flex;flex-direction:column;gap:8px}
+.label{font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--ink-2)}
+.drop{position:relative;border:2px dashed var(--rule);border-radius:var(--r);padding:22px 14px;text-align:center;cursor:pointer;background:var(--paper);display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop svg{width:40px;height:40px;color:var(--accent)}
+.drop strong{font-weight:600;font-size:16px}
+.drop small{color:var(--ink-2);font-size:12.5px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.drop.has{border-style:solid;border-color:var(--accent);background:var(--accent-soft);padding:14px}
+.drop.has svg{width:28px;height:28px}
+.file-name{font-family:var(--mono);font-size:13px;word-break:break-all;color:var(--ink)}
+.route{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;background:var(--paper);border-radius:6px;padding:8px 10px}
+.route b{font-weight:600}
+.route .arrow{color:var(--accent);font-weight:700}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:8px 4px;text-align:center;font-size:14px;cursor:pointer;border-left:1px solid var(--rule);color:var(--ink-2)}
+.seg label:first-of-type{border-left:0}
+.seg input:checked+label{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:-3px}
+.hint{font-size:12.5px;color:var(--ink-2);margin:0}
+.hint code{font-family:var(--mono);font-size:12px}
+details.ai{border:1px solid var(--rule-2);border-radius:6px;padding:9px 12px;background:var(--paper)}
+details.ai summary{cursor:pointer;font-weight:600;font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.ai summary::-webkit-details-marker{display:none}
+details.ai summary::after{content:"▾";color:var(--ink-2);font-size:12px}
+details.ai[open] summary::after{content:"▴"}
+.pill{font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--rule-2);color:var(--ink-2);margin-left:auto;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.ai-body{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12.5px;color:var(--ink-2)}
+input[type=text],input[type=password],select{font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--rule);border-radius:5px;background:var(--sheet);color:var(--ink);width:100%;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+.radio-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px}
+.radio-row label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.radio-row label[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+button{font:inherit;cursor:pointer;border-radius:6px}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;padding:13px 16px;font-weight:600;font-size:16px;width:100%}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;max-height:180px;overflow:auto}
+.log:empty{display:none}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:8px;color:var(--ink-2)}
+.log li::before{content:"";width:6px;height:6px;border-radius:50%;margin-top:8px;background:var(--rule)}
+.log li.ok::before{background:var(--ok)} .log li.warn::before{background:var(--warn)} .log li.err::before{background:var(--stamp)} .log li.run::before{background:var(--accent)}
+.log li.err{color:var(--stamp)}
+
+/* 결과 */
+.result{display:flex;flex-direction:column;gap:12px;min-width:0}
+.headline{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.hl-left{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 260px}
+.hl-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.title-line{font-family:var(--display);font-weight:700;font-size:21px;margin:0;line-height:1.25;overflow-wrap:anywhere}
+.badge{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;background:var(--rule-2);color:var(--ink-2)}
+.badge.example{background:var(--warn-soft);color:var(--warn)} .badge.rule{background:var(--accent-soft);color:var(--accent)}
+.badge.ai{background:var(--warn-soft);color:var(--warn)} .badge.unlock{background:var(--ok-soft);color:var(--ok)}
+.stats{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink);font-weight:600;font-size:18px;margin-right:3px}
+.dl{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;flex:0 1 auto}
+.dl input{width:min(230px,100%)}
+.dl .btn{width:auto;padding:11px 18px}
+.pages{display:flex;gap:6px;flex-wrap:wrap}
+.pages button{border:1px solid var(--rule);background:var(--sheet);color:var(--ink-2);padding:3px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.pages button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600}
+.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:640px){.compare{grid-template-columns:minmax(0,1fr)}}
+.pane{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pane-h{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;color:var(--ink)}
+.pane-h span:last-child{font-weight:400;color:var(--ink-2);font-size:12px}
+.stage{background:var(--rule-2);border:1px solid var(--rule);border-radius:var(--r);padding:12px;overflow:auto;max-height:80vh}
+.stage canvas,.stage img{display:block;width:100%;height:auto;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.sheet{position:relative;background:#fff;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.18);overflow:hidden;width:100%}
+.sheet .p{position:absolute;white-space:pre;line-height:1;transform-origin:left top}
+.sheet table{position:absolute;border-collapse:collapse;table-layout:fixed}
+.sheet td{padding:0 .4%;overflow:hidden;line-height:1.15;white-space:pre-wrap;word-break:break-all}
+.sheet .m{margin:0;white-space:pre-wrap}
+.placeholder{display:grid;place-items:center;text-align:center;color:var(--ink-2);font-size:13.5px;background:var(--sheet);border:1px dashed var(--rule);aspect-ratio:210/297;padding:24px;border-radius:2px}
+#notices{display:flex;flex-direction:column;gap:8px}
+#notices:empty{display:none}
+.notice{border-left:4px solid var(--warn);background:var(--warn-soft);padding:10px 14px;font-size:14px;border-radius:0 var(--r) var(--r) 0}
+.notice.ok{border-color:var(--ok);background:var(--ok-soft)}
+.notice p{margin:0 0 4px} .notice p:last-child{margin:0}
+.notice code{font-family:var(--mono);font-size:12.5px}
+.kinds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.kinds{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.kinds{grid-template-columns:minmax(0,1fr)}}
+.kind{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kind .k{font-weight:600;font-size:14.5px}
+.kind .v{font-size:13px;color:var(--ink-2)}
+.kind .r{font-size:12px;font-weight:600;align-self:flex-start;padding:1px 8px;border-radius:999px}
+.kind .r.rule{background:var(--accent-soft);color:var(--accent)} .kind .r.ai{background:var(--warn-soft);color:var(--warn)} .kind .r.unlock{background:var(--ok-soft);color:var(--ok)} .kind .r.pdf{background:var(--rule-2);color:var(--ink-2)}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(1turn)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>양식 되살리기</h1>
+      <p>편집 안 되는 양식 → <b>한글에서 고칠 수 있는 hwpx</b></p>
+    </div>
+    <div class="privacy"><span class="dot" aria-hidden="true"></span>파일은 이 브라우저 안에서 처리합니다</div>
+  </header>
+
+  <ol class="flow" aria-label="진행 단계">
+    <li id="f1" data-state="now"><span class="n">1</span><span class="t">파일 올리기</span><span class="s" id="f1s">PDF · hwpx · 사진</span></li>
+    <li id="f2"><span class="n">2</span><span class="t">되살리기</span><span class="s" id="f2s">표와 칸을 원본대로</span></li>
+    <li id="f3"><span class="n">3</span><span class="t">hwpx 내려받기</span><span class="s" id="f3s">한글에서 바로 편집</span></li>
+  </ol>
+
+  <div class="grid">
+    <aside class="panel" aria-label="변환 설정">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".pdf,.hwpx,.hwp,.png,.jpg,.jpeg,.webp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/></svg>
+        <strong id="dropTitle">양식 파일 올리기</strong>
+        <small id="dropSub">끌어다 놓거나 눌러서 선택</small>
+      </label>
+      <div class="route" id="route" hidden></div>
+
+      <div class="step">
+        <span class="label">변환 방식</span>
+        <div class="seg" role="radiogroup" aria-label="변환 방식">
+          <input type="radio" name="mode" id="m-auto" value="auto" checked><label for="m-auto">자동</label>
+          <input type="radio" name="mode" id="m-rule" value="rule"><label for="m-rule">좌표 복원</label>
+          <input type="radio" name="mode" id="m-ai" value="ai"><label for="m-ai">AI 인식</label>
+        </div>
+        <p class="hint" id="modeHint">글자 있는 PDF는 좌표로, 스캔본·사진은 AI로 복원합니다.</p>
+      </div>
+
+      <details class="ai" id="aiBox">
+        <summary>AI 인식 설정 <span class="pill" id="aiState">확인 중</span></summary>
+        <div class="ai-body">
+          <div class="radio-row" role="radiogroup" aria-label="AI 엔진">
+            <label id="engClaudeL" aria-disabled="true"><input type="radio" name="engine" id="engClaude" value="claude" disabled> Claude</label>
+            <label><input type="radio" name="engine" id="engGemini" value="gemini" checked> Gemini</label>
+          </div>
+          <p class="hint" id="claudeHint" hidden>claude.ai에서 열었을 때는 키 없이 Claude를 씁니다.</p>
+          <div class="field" id="gemFields">
+            <label for="gemKey">Gemini API 키</label>
+            <input type="password" id="gemKey" autocomplete="off" spellcheck="false" placeholder="AQ.…">
+            <p class="hint" id="keyHint">요즘 키는 <code>AQ.</code>, 예전 키는 <code>AIza</code>로 시작합니다.</p>
+            <label for="gemModel">모델</label>
+            <select id="gemModel">
+              <option value="gemini-3.8-flash">gemini-3.8-flash (빠름·권장)</option>
+              <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (정밀)</option>
+              <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+            </select>
+            <label class="check"><input type="checkbox" id="gemRemember"> 이 브라우저에 키 기억하기</label>
+          </div>
+        </div>
+      </details>
+
+      <button class="btn" id="run" disabled>hwpx로 되살리기</button>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </aside>
+
+    <main class="result" id="result">
+      <div class="headline">
+        <div class="hl-left">
+          <div class="hl-top">
+            <h2 class="title-line" id="resTitle">학부모 상담 신청서</h2>
+            <span class="badge example" id="resBadge">예시</span>
+          </div>
+          <div class="stats" id="stats"></div>
+        </div>
+        <div class="dl">
+          <input type="text" id="outName" value="학부모 상담 신청서" aria-label="저장할 파일 이름">
+          <button class="btn" id="download">hwpx 내려받기</button>
+        </div>
+      </div>
+      <div id="notices"></div>
+      <div class="pages" id="pages" hidden></div>
+      <div class="compare">
+        <section class="pane">
+          <div class="pane-h"><span>원본</span><span id="origMeta"></span></div>
+          <div class="stage" id="origStage"><div class="placeholder">예시 양식입니다.<br>파일을 올리면 원본 페이지가 여기에 나옵니다.</div></div>
+        </section>
+        <section class="pane">
+          <div class="pane-h"><span>hwpx 미리보기</span><span id="recMeta"></span></div>
+          <div class="stage" id="recStage"></div>
+        </section>
+      </div>
+
+      <section class="kinds" aria-label="파일별 처리 방법">
+        <div class="kind"><span class="k">글자 있는 PDF</span><span class="r rule">좌표 복원</span><span class="v">병합·선·점선·대각선·색·자간까지 그대로</span></div>
+        <div class="kind"><span class="k">스캔 PDF · 사진</span><span class="r ai">AI 인식</span><span class="v">AI가 표와 글자를 읽어 다시 짭니다</span></div>
+        <div class="kind"><span class="k">잠긴 hwpx</span><span class="r unlock">잠금 해제</span><span class="v">서식은 그대로, 잠금만 풉니다</span></div>
+        <div class="kind"><span class="k">배포용 문서 · hwp</span><span class="r pdf">PDF로 인쇄 후 올리기</span><span class="v">한글에서 인쇄 → PDF로 저장</span></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+/*__ENGINE__*/
+</script>
+<script>
+(function(){
+'use strict';
+const SKELETON_B64 = '/*__SKELETON__*/';
+const E = window.FormEngine;
+const $ = (id) => document.getElementById(id);
+const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.js';
+
+const b64ToBytes = (b) => { const s = atob(b); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+const SKELETON = b64ToBytes(SKELETON_B64);
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k,v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} } };
+
+/* ── 런타임 기능(claude.ai 안에서만) ── */
+let sampleCap = null, downloadsCap = null;
+if (window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('sample').then(async (s) => {
+    if (!s) return;
+    const lim = await s.limits().catch(() => null);
+    if (lim && lim.images) { sampleCap = { fn: s, lim }; enableClaude(); }
+  }).catch(() => {}).finally(updateAiState);
+  window.claude.use('downloads').then((d) => { downloadsCap = d || null; }).catch(() => {});
+} else setTimeout(updateAiState, 0);
+
+function enableClaude(){
+  $('engClaude').disabled = false; $('engClaudeL').setAttribute('aria-disabled', 'false');
+  $('claudeHint').hidden = false;
+  if (!$('gemKey').value) $('engClaude').checked = true;
+  syncEngine();
+}
+function engine(){ return document.querySelector('input[name=engine]:checked').value; }
+function syncEngine(){ $('gemFields').hidden = engine() !== 'gemini'; updateAiState(); }
+const gemKey = () => $('gemKey').value.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
+const keyLooksValid = (k) => /^(AQ\.|AIza)[A-Za-z0-9._-]{10,}$/.test(k);
+function aiReady(){ return engine() === 'claude' ? !!sampleCap : !!gemKey(); }
+function updateAiState(){
+  const s = $('aiState');
+  let txt, cls;
+  if (engine() === 'claude') { txt = sampleCap ? 'Claude 준비됨' : 'Claude 사용 불가'; cls = sampleCap ? 'ok' : 'warn'; }
+  else { const k = gemKey(); txt = !k ? '키 필요' : keyLooksValid(k) ? 'Gemini 준비됨' : '키 형식 확인'; cls = !k ? '' : keyLooksValid(k) ? 'ok' : 'warn'; }
+  s.textContent = txt; s.className = 'pill ' + cls;
+  const kh = $('keyHint'); const k2 = gemKey();
+  if (kh) kh.style.color = k2 && !keyLooksValid(k2) ? 'var(--warn)' : '';
+}
+document.querySelectorAll('input[name=engine]').forEach((r) => r.addEventListener('change', syncEngine));
+const savedKey = store.get('fr.gemKey'); if (savedKey) { $('gemKey').value = savedKey; $('gemRemember').checked = true; }
+const savedModel = store.get('fr.gemModel'); if (savedModel) $('gemModel').value = savedModel;
+$('gemKey').addEventListener('input', () => { if ($('gemRemember').checked) store.set('fr.gemKey', gemKey()); updateAiState(); });
+$('gemRemember').addEventListener('change', () => store.set('fr.gemKey', $('gemRemember').checked ? gemKey() : null));
+$('gemModel').addEventListener('change', () => store.set('fr.gemModel', $('gemModel').value));
+syncEngine();
+
+/* ── 모드 안내 ── */
+const MODE_HINT = {
+  auto: '글자 있는 PDF는 좌표로, 스캔본·사진은 AI로 복원합니다.',
+  rule: 'AI 없이 PDF의 선·글자 좌표만 씁니다. 스캔본은 안 됩니다.',
+  ai: '모든 페이지를 AI가 읽습니다. PDF 글자도 함께 보내 오타를 줄입니다.',
+};
+const mode = () => document.querySelector('input[name=mode]:checked').value;
+document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => {
+  $('modeHint').textContent = MODE_HINT[mode()];
+  if (mode() === 'ai') $('aiBox').open = true;
+}));
+
+/* ── 로그 ── */
+function log(msg, cls = ''){ if (cls === 'run') setFlow(2, 'now', msg); const li = document.createElement('li'); li.className = cls; li.textContent = msg; $('log').appendChild(li); li.scrollIntoView({ block: 'nearest' }); return li; }
+function clearLog(){ $('log').replaceChildren(); }
+
+/* ── 상태 ── */
+let currentFile = null;
+let state = null; // { title, badge, pages:[{orig:canvas|img|null, layout, method}], notices:[], output:{kind:'build'|'bytes', bytes?} }
+
+/* ── 파일 선택 ── */
+const drop = $('drop');
+['dragenter','dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) setFile(f); });
+$('file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) setFile(f); });
+const ROUTE = {
+  pdf: ['PDF', '글자가 있으면 <b>좌표 복원</b>, 스캔본이면 <b>AI 인식</b>'],
+  png: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'], jpg: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'],
+  jpeg: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'], webp: ['사진', '<b>AI 인식</b>으로 복원 (AI 설정 필요)'],
+  hwpx: ['hwpx', '잠금만 걸렸으면 <b>잠금 해제</b>, 배포용이면 PDF 안내'],
+  hwp: ['hwp', '직접 읽을 수 없어요 · <b>PDF로 인쇄</b> 후 올려 주세요'],
+};
+function setFlow(n, state, text){ const li = $('f' + n); li.dataset.state = state || ''; if (text != null) $('f' + n + 's').textContent = text; }
+function setFile(f){
+  currentFile = f;
+  const size = f.size / 1024 < 1024 ? (f.size / 1024).toFixed(0) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB';
+  $('drop').classList.add('has');
+  $('dropTitle').textContent = f.name;
+  $('dropSub').textContent = size + ' · 눌러서 다른 파일 선택';
+  const r = ROUTE[extOf(f.name)];
+  $('route').hidden = !r;
+  if (r) $('route').innerHTML = `<span class="arrow" aria-hidden="true">→</span><span>${r[1]}</span>`;
+  $('run').disabled = false;
+  $('outName').value = f.name.replace(/\.[^.]+$/, '') + '_편집용';
+  setFlow(1, 'done', f.name);
+  setFlow(2, 'now', '아래 버튼을 누르세요');
+  setFlow(3, '', '한글에서 바로 편집');
+}
+const extOf = (n) => (n.match(/\.([^.]+)$/) || [, ''])[1].toLowerCase();
+
+/* ── 이미지 유틸 ── */
+const canvasBlob = (c, type = 'image/jpeg', q = 0.9) => new Promise((res) => c.toBlob(res, type, q));
+async function fitBlob(canvas){
+  const maxBytes = (sampleCap && sampleCap.lim.images && sampleCap.lim.images.maxBytes) || 4.5e6;
+  let c = canvas, q = 0.9;
+  for (let i = 0; i < 6; i++) {
+    const b = await canvasBlob(c, 'image/jpeg', q);
+    if (b.size <= maxBytes) return b;
+    const s = document.createElement('canvas'); s.width = Math.round(c.width * 0.8); s.height = Math.round(c.height * 0.8);
+    s.getContext('2d').drawImage(c, 0, 0, s.width, s.height); c = s; q = 0.85;
+  }
+  return canvasBlob(c, 'image/jpeg', 0.8);
+}
+const blobToB64 = (b) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(b); });
+function loadImage(src){ return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('이미지를 열 수 없습니다.')); i.src = src; }); }
+function imageToCanvas(img, maxSide = 2400){
+  const s = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); return c;
+}
+
+/* ── AI 호출 ── */
+function parseJsonLoose(t){
+  t = String(t || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  return JSON.parse(a >= 0 ? t.slice(a, b + 1) : t);
+}
+async function callAI(blob, pageMm, extraText){
+  let prompt = E.AI_PROMPT + `\n\n이 페이지 용지 크기(추정): ${pageMm.w.toFixed(0)}×${pageMm.h.toFixed(0)}mm.`;
+  if (extraText) prompt += `\n\n참고: 이 페이지에서 직접 추출한 정확한 글자(위→아래 순). 글자는 이것을 우선 따르세요.\n${extraText.slice(0, 8000)}`;
+  if (engine() === 'claude') {
+    if (!sampleCap) throw new Error('Claude를 쓸 수 없는 화면입니다. Gemini 키를 넣어 주세요.');
+    try { return await sampleCap.fn.json(prompt, { images: [blob], modelTier: 'complex' }); }
+    catch (e) {
+      if (e && e.code === 'invalid_json' && e.text) return parseJsonLoose(e.text);
+      if (e && e.code === 'rate_limited') throw new Error('AI 요청이 많아 잠시 막혔습니다. 조금 뒤 다시 시도해 주세요.');
+      throw new Error('Claude 인식 실패: ' + ((e && e.message) || e));
+    }
+  }
+  const key = gemKey();
+  if (!key) throw new Error('Gemini API 키가 없습니다. AI 인식 설정에 키를 넣어 주세요.');
+  const model = $('gemModel').value;
+  const body = { contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: blob.type || 'image/jpeg', data: await blobToB64(blob) } }] }],
+    generationConfig: { responseMimeType: 'application/json', temperature: 0 } };
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
+  } catch (e) {
+    throw new Error('Gemini 서버에 연결하지 못했습니다. claude.ai 미리보기 안에서는 외부 연결이 막혀 있으니 Claude 엔진을 쓰거나, 내려받은 HTML을 edu-hub 같은 웹 주소에 올려 사용하세요.');
+  }
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = (j.error && j.error.message) || '응답을 읽지 못했습니다.';
+    if (res.status === 400 && /api key/i.test(msg) || res.status === 401 || res.status === 403)
+      throw new Error('Gemini가 키를 받아들이지 않았습니다. AI Studio에서 발급한 키(AQ. 또는 AIza로 시작)를 빈칸 없이 붙여 넣었는지 확인해 주세요. (' + res.status + ')');
+    throw new Error('Gemini 오류 ' + res.status + ': ' + msg);
+  }
+  const text = (((j.candidates || [])[0] || {}).content || {}).parts?.map((p) => p.text || '').join('') || '';
+  if (!text) throw new Error('Gemini가 빈 응답을 보냈습니다.');
+  return parseJsonLoose(text);
+}
+
+/* ── 변환 실행 ── */
+$('run').addEventListener('click', async () => {
+  if (!currentFile) return;
+  $('run').disabled = true;
+  const old = $('run').textContent; $('run').innerHTML = '<span class="spin" aria-hidden="true"></span> 변환 중…';
+  clearLog();
+  setFlow(2, 'now', '변환 중…'); setFlow(3, '', '한글에서 바로 편집');
+  try {
+    const ext = extOf(currentFile.name);
+    if (ext === 'pdf') await convertPdf(currentFile);
+    else if (['png','jpg','jpeg','webp'].includes(ext)) await convertImage(currentFile);
+    else if (ext === 'hwpx') await convertHwpx(currentFile);
+    else if (ext === 'hwp') explainHwp();
+    else log('지원하지 않는 형식입니다. PDF, hwpx, hwp, PNG/JPG를 올려 주세요.', 'err');
+  } catch (e) {
+    console.error(e); log(e.message || String(e), 'err'); setFlow(2, 'warn', '변환하지 못했습니다');
+  } finally { $('run').disabled = false; $('run').textContent = old; }
+});
+
+async function convertPdf(file){
+  if (!window.pdfjsLib) throw new Error('PDF 엔진을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.');
+  const data = new Uint8Array(await file.arrayBuffer());
+  let doc;
+  try { doc = await pdfjsLib.getDocument({ data, cMapUrl: PDFJS_BASE + 'cmaps/', cMapPacked: true, standardFontDataUrl: PDFJS_BASE + 'standard_fonts/', isEvalSupported: false }).promise; }
+  catch (e) { throw new Error(e && e.name === 'PasswordException' ? '암호가 걸린 PDF입니다. 암호를 해제한 PDF를 올려 주세요.' : 'PDF를 열 수 없습니다: ' + (e.message || e)); }
+  const N = Math.min(doc.numPages, 40);
+  if (doc.numPages > 40) log(`페이지가 많아 앞 40쪽만 변환합니다.`, 'warn');
+  const m = mode();
+  const pages = [];
+  for (let i = 1; i <= N; i++) {
+    const li = log(`${i}/${N}쪽 읽는 중…`, 'run');
+    const page = await doc.getPage(i);
+    const vp1 = page.getViewport({ scale: 1 });
+    const scale = Math.min(2.2, 2400 / Math.max(vp1.width, vp1.height));
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement('canvas'); canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+    const g = canvas.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: g, viewport: vp }).promise;
+    let ruleLayout = null;
+    let sampleColor = null;
+    try { const img = g.getImageData(0, 0, canvas.width, canvas.height); sampleColor = E.makeColorSampler(img.data, canvas.width, canvas.height, scale); } catch (e) { /* 색 읽기 생략 */ }
+    try { ruleLayout = await E.extractPdfPage(page, pdfjsLib, { sampleColor }); } catch (e) { console.warn(e); }
+    const hasText = ruleLayout && ruleLayout.textChars >= 15;
+    let useAI = m === 'ai' || (m === 'auto' && !hasText);
+    if (m === 'rule' && !hasText) { li.className = 'warn'; li.textContent = `${i}쪽: 글자가 없는 페이지(스캔본)라 좌표 복원이 어렵습니다. AI 인식을 선택해 주세요.`; }
+    if (useAI && !aiReady()) {
+      if (hasText) { useAI = false; log(`${i}쪽: AI 설정이 없어 좌표 복원으로 진행합니다.`, 'warn'); }
+      else { li.className = 'err'; li.textContent = `${i}쪽: 스캔본입니다. AI 인식 설정(엔진·키)을 먼저 해 주세요.`; pages.push({ orig: canvas, layout: ruleLayout || E.aiToLayout({ blocks: [] }), method: 'none' }); continue; }
+    }
+    if (useAI) {
+      li.textContent = `${i}/${N}쪽 AI가 읽는 중… (보통 20~60초)`;
+      const extra = hasText ? textLines(ruleLayout) : '';
+      try {
+        const json = await callAI(await fitBlob(canvas), { w: vp1.width / E.MM2PT, h: vp1.height / E.MM2PT }, extra);
+        const L = E.aiToLayout(json, { w: vp1.width / E.MM2PT, h: vp1.height / E.MM2PT });
+        pages.push({ orig: canvas, layout: L, method: 'ai' });
+        const s = E.statsOf([L]); li.className = 'ok'; li.textContent = `${i}쪽 AI 인식 완료 · 표 ${s.tables}개, 칸 ${s.cells}개`;
+      } catch (e) {
+        if (ruleLayout && hasText) { pages.push({ orig: canvas, layout: ruleLayout, method: 'rule' }); li.className = 'warn'; li.textContent = `${i}쪽 AI 실패 → 좌표 복원으로 대체 (${e.message})`; }
+        else { pages.push({ orig: canvas, layout: E.aiToLayout({ blocks: [] }), method: 'none' }); li.className = 'err'; li.textContent = `${i}쪽: ${e.message}`; }
+      }
+    } else if (ruleLayout && hasText) {
+      pages.push({ orig: canvas, layout: ruleLayout, method: 'rule' });
+      const s = E.statsOf([ruleLayout]); li.className = 'ok'; li.textContent = `${i}쪽 좌표 복원 완료 · 표 ${s.tables}개, 칸 ${s.cells}개, 문단 ${s.paras}개`;
+    } else if (!li.className.match(/warn|err/)) {
+      pages.push({ orig: canvas, layout: ruleLayout || E.aiToLayout({ blocks: [] }), method: 'none' });
+    } else pages.push({ orig: canvas, layout: ruleLayout || E.aiToLayout({ blocks: [] }), method: 'none' });
+  }
+  const notices = [];
+  if (pages.some((p) => p.method === 'ai')) notices.push({ cls: '', html: '<p>AI가 읽은 페이지는 글자나 칸 나눔이 원본과 다를 수 있습니다. 한글에서 열어 한 번 대조해 주세요.</p>' });
+  finish({ title: file.name.replace(/\.[^.]+$/, ''), pages, notices, output: { kind: 'build' } });
+}
+function textLines(L){
+  const out = [];
+  for (const b of L.blocks) {
+    if (b.kind === 'p') out.push(b.runs.map((r) => r.t).join(''));
+    else for (const c of b.cells) { const t = (c.paras || []).map((p) => p.runs.map((r) => r.t).join('').trim()).filter(Boolean).join(' / '); if (t) out.push(`[표 칸] ${t}`); }
+  }
+  return out.join('\n');
+}
+
+async function convertImage(file){
+  if (!aiReady()) { $('aiBox').open = true; throw new Error('사진·스캔 이미지는 AI 인식이 필요합니다. AI 인식 설정에서 엔진(Claude 또는 Gemini 키)을 준비해 주세요.'); }
+  const url = URL.createObjectURL(file);
+  const img = await loadImage(url);
+  const canvas = imageToCanvas(img);
+  URL.revokeObjectURL(url);
+  const ratio = canvas.height / canvas.width;
+  const pageMm = ratio >= 1 ? { w: 210, h: 297 } : { w: 297, h: 210 };
+  const li = log('AI가 이미지를 읽는 중… (보통 20~60초)', 'run');
+  const json = await callAI(await fitBlob(canvas), pageMm, '');
+  const L = E.aiToLayout(json, pageMm);
+  const s = E.statsOf([L]); li.className = 'ok'; li.textContent = `AI 인식 완료 · 표 ${s.tables}개, 칸 ${s.cells}개`;
+  finish({ title: file.name.replace(/\.[^.]+$/, ''), pages: [{ orig: canvas, layout: L, method: 'ai' }],
+    notices: [{ cls: '', html: '<p>사진·스캔본은 AI가 읽은 결과입니다. 글자와 칸 나눔을 한글에서 한 번 대조해 주세요.</p>' }], output: { kind: 'build' } });
+}
+
+async function convertHwpx(file){
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const info = await E.inspectHwpx(bytes, JSZip);
+  if (!info.ok) throw new Error('hwpx 파일을 열 수 없습니다. 확장자만 바뀐 다른 형식인지 확인해 주세요.');
+  if (!info.encrypted) {
+    const { bytes: out, changed } = await E.unlockHwpx(info.zip, JSZip);
+    const prv = info.preview ? await loadImage(URL.createObjectURL(new Blob([info.preview], { type: 'image/png' }))).catch(() => null) : null;
+    const notices = changed
+      ? [{ cls: 'ok', html: `<p><b>편집 잠금 ${changed}곳을 풀었습니다.</b> 표·글자·서식은 원본 그대로입니다.</p>` }]
+      : [{ cls: '', html: '<p>이 파일에는 풀 잠금이 없습니다. 한글에서 여전히 편집이 막힌다면 <b>보기 → 문서 보안</b>이나 양식 모드(누름틀만 입력 가능)가 켜져 있는지 확인해 주세요. 원본을 다시 저장한 사본을 드립니다.</p>' }];
+    log(changed ? `잠금 ${changed}곳 해제 완료` : '잠금 속성이 없는 hwpx입니다.', changed ? 'ok' : 'warn');
+    finish({ title: file.name.replace(/\.[^.]+$/, ''), unlock: true, pages: [{ orig: prv, layout: null, method: 'unlock' }], notices, output: { kind: 'bytes', bytes: out } });
+    return;
+  }
+  // 배포용(암호화)
+  log('배포용(암호화) 문서입니다. 본문을 직접 읽을 수 없습니다.', 'warn');
+  const notices = [{ cls: '', html: '<p><b>배포용 문서는 내용이 암호화되어 있어 직접 읽을 수 없습니다.</b></p><p>가장 정확한 방법: 한글이나 한컴오피스 뷰어에서 열고 <b>인쇄 → 프린터 “Microsoft Print to PDF” 또는 “한컴 PDF”</b>로 저장한 뒤, 그 PDF를 여기에 올려 주세요. 모든 페이지가 좌표 그대로 복원됩니다.</p>' }];
+  if (info.preview && aiReady()) {
+    const img = await loadImage(URL.createObjectURL(new Blob([info.preview], { type: 'image/png' })));
+    const canvas = imageToCanvas(img);
+    notices.push({ cls: '', html: '<p>파일에 들어 있는 첫 쪽 미리보기 그림으로 AI 복원을 시도했습니다. 해상도가 낮아 작은 글자는 틀릴 수 있습니다.</p>' });
+    const li = log('첫 쪽 미리보기를 AI가 읽는 중…', 'run');
+    try {
+      const json = await callAI(await fitBlob(canvas), { w: 210, h: 297 }, '');
+      const L = E.aiToLayout(json, { w: 210, h: 297 });
+      li.className = 'ok'; li.textContent = '첫 쪽 AI 복원 완료';
+      finish({ title: file.name.replace(/\.[^.]+$/, ''), pages: [{ orig: canvas, layout: L, method: 'ai' }], notices, output: { kind: 'build' } });
+      return;
+    } catch (e) { li.className = 'err'; li.textContent = e.message; }
+  }
+  showNoticeOnly(file.name, notices);
+}
+function explainHwp(){
+  log('hwp(한글 97~) 파일은 브라우저에서 읽을 수 없습니다.', 'warn');
+  showNoticeOnly(currentFile.name, [{ cls: '', html: '<p><b>.hwp 파일은 이 화면에서 직접 읽을 수 없습니다.</b></p><p>편집이 되는 hwp라면 한글에서 <b>다른 이름으로 저장 → hwpx</b>로 바꿔 올려 주세요. 배포용·잠긴 hwp라면 <b>인쇄 → PDF로 저장</b>한 PDF를 올리면 표를 그대로 복원합니다.</p>' }]);
+}
+function showNoticeOnly(name, notices){
+  state = { title: name.replace(/\.[^.]+$/, ''), pages: [], notices, output: null };
+  render();
+  setFlow(2, 'warn', '안내를 확인해 주세요');
+}
+
+function finish(s){
+  state = s; state.cur = 0; render();
+  const st = E.statsOf(s.pages.map((p) => p.layout).filter(Boolean));
+  const ok = s.pages.some((p) => p.method !== 'none');
+  setFlow(2, ok ? 'done' : 'warn', s.unlock ? '잠금 해제 완료' : ok ? `${st.pages}쪽 · 표 ${st.tables}개 복원` : '복원된 페이지 없음');
+  setFlow(3, ok ? 'now' : '', ok ? '준비됨 · 오른쪽 위 버튼' : '한글에서 바로 편집');
+}
+
+/* ── 화면 그리기 ── */
+function render(){
+  const s = state;
+  $('resTitle').textContent = s.title;
+  const methods = new Set(s.pages.map((p) => p.method));
+  const badge = $('resBadge');
+  if (s.example) { badge.className = 'badge example'; badge.textContent = '예시'; }
+  else if (s.unlock) { badge.className = 'badge unlock'; badge.textContent = '잠금 해제'; }
+  else if (methods.has('ai') && methods.has('rule')) { badge.className = 'badge ai'; badge.textContent = '좌표 + AI'; }
+  else if (methods.has('ai')) { badge.className = 'badge ai'; badge.textContent = 'AI 인식'; }
+  else if (methods.has('rule')) { badge.className = 'badge rule'; badge.textContent = '좌표 복원'; }
+  else { badge.className = 'badge'; badge.textContent = '변환 불가'; }
+  $('download').disabled = !s.output;
+  const layouts = s.pages.map((p) => p.layout).filter(Boolean);
+  const st = E.statsOf(layouts);
+  $('stats').innerHTML = s.unlock || !layouts.length ? '' :
+    `<span><b>${st.pages}</b>쪽</span><span><b>${st.tables}</b>개 표</span><span><b>${st.cells}</b>칸</span><span><b>${st.paras}</b>개 문단</span>`;
+  $('notices').replaceChildren(...(s.notices || []).map((n) => { const d = document.createElement('div'); d.className = 'notice ' + (n.cls || ''); d.innerHTML = n.html; return d; }));
+  const pg = $('pages');
+  pg.hidden = s.pages.length < 2;
+  pg.replaceChildren(...s.pages.map((p, i) => { const b = document.createElement('button'); b.textContent = (i + 1) + '쪽'; b.setAttribute('aria-pressed', String(i === (s.cur || 0))); b.onclick = () => { s.cur = i; render(); }; return b; }));
+  showPage(s.pages[s.cur || 0]);
+}
+function showPage(p){
+  const o = $('origStage'), r = $('recStage');
+  o.replaceChildren(); r.replaceChildren();
+  $('origMeta').textContent = ''; $('recMeta').textContent = '';
+  if (!p) { o.innerHTML = '<div class="placeholder">미리볼 페이지가 없습니다.</div>'; r.innerHTML = '<div class="placeholder">안내를 확인해 주세요.</div>'; return; }
+  if (p.orig) { const el = p.orig.tagName === 'CANVAS' ? p.orig : p.orig; o.appendChild(el); }
+  else o.innerHTML = '<div class="placeholder">예시 양식입니다.<br>파일을 올리면 원본 페이지가 여기에 나옵니다.</div>';
+  if (p.layout) {
+    r.appendChild(renderSheet(p.layout));
+    $('recMeta').textContent = `${(p.layout.W / E.MM2PT).toFixed(0)}×${(p.layout.H / E.MM2PT).toFixed(0)}mm`;
+  } else if (p.method === 'unlock') {
+    r.innerHTML = '<div class="placeholder">원본 서식을 그대로 둔 채 잠금만 풀었습니다.<br>내려받아 한글에서 열어 보세요.</div>';
+  }
+  if (p.orig && p.orig.tagName === 'CANVAS') $('origMeta').textContent = p.method === 'ai' ? 'AI에 보낸 이미지' : '';
+}
+
+/* 레이아웃 → HTML 미리보기 (용지 폭 기준 %) */
+function renderSheet(L){
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.style.aspectRatio = `${L.W} / ${L.H}`;
+  const box = new ResizeObserver(() => draw());
+  let lastW = 0;
+  function draw(){
+    const w = sheet.clientWidth; if (!w || Math.abs(w - lastW) < 1) return; lastW = w;
+    const k = w / L.W; // pt → px
+    sheet.replaceChildren();
+    const fontCss = (f) => /바탕|명조|궁서/.test(f) ? '"Nanum Myeongjo","Noto Serif KR",serif' : /헤드라인/.test(f) ? '"IBM Plex Sans KR",sans-serif' : '"IBM Plex Sans KR","Malgun Gothic",sans-serif';
+    const runSpan = (r) => { const s = document.createElement('span'); s.textContent = r.t; s.style.fontSize = (r.size * k) + 'px'; s.style.fontFamily = fontCss(r.font || ''); if (r.bold || /헤드라인/.test(r.font || '')) s.style.fontWeight = '700'; if (r.italic) s.style.fontStyle = 'italic'; if (r.underline) s.style.textDecoration = 'underline'; if (r.color && r.color !== '#000000') s.style.color = r.color; if (r.sp) s.style.letterSpacing = (r.sp / 100 * r.size * k) + 'px'; return s; };
+    const cl = L.margin.l, cr = L.W - L.margin.r;
+    for (const b of L.blocks) {
+      if (b.kind === 'p') {
+        const d = document.createElement('div'); d.className = 'p';
+        d.style.top = (b.top * k) + 'px';
+        const al = b.alignHint || 'LEFT';
+        if (al === 'CENTER') { d.style.left = (cl * k) + 'px'; d.style.width = ((cr - cl) * k) + 'px'; d.style.textAlign = 'center'; }
+        else if (al === 'RIGHT') { d.style.left = (cl * k) + 'px'; d.style.width = ((cr - cl) * k) + 'px'; d.style.textAlign = 'right'; }
+        else d.style.left = (b.x1 * k) + 'px';
+        b.runs.forEach((r) => d.appendChild(runSpan(r)));
+        sheet.appendChild(d);
+      } else {
+        const t = document.createElement('table');
+        t.style.left = (b.x1 * k) + 'px'; t.style.top = (b.top * k) + 'px';
+        const tw = b.colW.reduce((a, v) => a + v, 0); t.style.width = (tw * k) + 'px';
+        const cg = document.createElement('colgroup');
+        b.colW.forEach((v) => { const c = document.createElement('col'); c.style.width = (v * k) + 'px'; cg.appendChild(c); });
+        t.appendChild(cg);
+        const rows = b.rowH.map((h) => { const tr = document.createElement('tr'); tr.style.height = (h * k) + 'px'; return tr; });
+        for (const c of b.cells) {
+          const td = document.createElement('td');
+          td.rowSpan = c.rs; td.colSpan = c.cs;
+          const bs = (s) => s.type === 'NONE' ? 'none' : `${Math.max(0.6, s.w * 2.835 * k)}px ${s.type === 'DOUBLE_SLIM' ? 'double' : s.type === 'DOT' ? 'dotted' : s.type === 'DASH' ? 'dashed' : 'solid'} #000`;
+          td.style.borderLeft = bs(c.b.l); td.style.borderRight = bs(c.b.r); td.style.borderTop = bs(c.b.t); td.style.borderBottom = bs(c.b.bm);
+          if (c.b.l.type === 'DOUBLE_SLIM' || c.b.r.type === 'DOUBLE_SLIM' || c.b.t.type === 'DOUBLE_SLIM' || c.b.bm.type === 'DOUBLE_SLIM') {
+            ['Left','Right','Top','Bottom'].forEach((sd) => { if (td.style['border' + sd + 'Style'] === 'double') td.style['border' + sd + 'Width'] = Math.max(3, 2.2 * k) + 'px'; });
+          }
+          const bgc = c.bg || 'transparent';
+          if (c.diag) td.style.background = `linear-gradient(to ${c.diag.kind === 'back' ? 'top right' : 'bottom right'}, ${bgc} calc(50% - 0.6px), #000 50%, ${bgc} calc(50% + 0.6px))`;
+          else if (c.bg) td.style.background = c.bg;
+          td.style.verticalAlign = c.va === 'TOP' ? 'top' : c.va === 'BOTTOM' ? 'bottom' : 'middle';
+          for (const p of c.paras || []) {
+            const d = document.createElement('p'); d.className = 'm';
+            d.style.textAlign = { CENTER: 'center', RIGHT: 'right', JUSTIFY: 'justify' }[p.align] || 'left';
+            if (p.indent) d.style.paddingLeft = (p.indent * k) + 'px';
+            const sz = (p.runs[0] && p.runs[0].size) || 10;
+            d.style.lineHeight = ((p.ls || 130) / 100 * sz * k) + 'px';
+            d.style.minHeight = (sz * k) + 'px';
+            p.runs.forEach((r) => d.appendChild(runSpan(r)));
+            td.appendChild(d);
+          }
+          rows[c.r].appendChild(td);
+        }
+        rows.forEach((tr) => t.appendChild(tr));
+        sheet.appendChild(t);
+      }
+    }
+  }
+  box.observe(sheet);
+  requestAnimationFrame(draw);
+  return sheet;
+}
+
+/* ── 내려받기 ── */
+$('download').addEventListener('click', async () => {
+  if (!state || !state.output) return;
+  const btn = $('download'); btn.disabled = true;
+  try {
+    let bytes;
+    if (state.output.kind === 'bytes') bytes = state.output.bytes;
+    else {
+      const layouts = state.pages.map((p) => p.layout).filter(Boolean);
+      let previewPng = null;
+      const first = state.pages[0] && state.pages[0].orig;
+      if (first && first.tagName === 'CANVAS') {
+        const c = document.createElement('canvas'); const s = 480 / first.width; c.width = 480; c.height = Math.round(first.height * s);
+        c.getContext('2d').drawImage(first, 0, 0, c.width, c.height);
+        const b = await canvasBlob(c, 'image/png'); previewPng = new Uint8Array(await b.arrayBuffer());
+      }
+      const name = ($('outName').value || state.title).trim();
+      const res = await E.buildHwpx(SKELETON, layouts, JSZip, { title: name, previewPng });
+      bytes = res.bytes;
+    }
+    await saveFile(bytes, ($('outName').value || state.title || '양식').trim().replace(/[\\/:*?"<>|]/g, '_'));
+  } catch (e) { console.error(e); log('파일을 만들지 못했습니다: ' + (e.message || e), 'err'); }
+  finally { btn.disabled = false; }
+});
+async function saveFile(bytes, base){
+  if (downloadsCap) {
+    // claude.ai 화면은 .hwpx 확장자를 직접 저장할 수 없어 .zip을 붙여 저장합니다.
+    try {
+      await downloadsCap.save({ filename: base + '.hwpx.zip', data: new Blob([bytes], { type: 'application/zip' }) });
+      log(`“${base}.hwpx.zip”으로 저장했습니다. 파일 이름 끝의 .zip을 지우면 한글에서 바로 열립니다.`, 'ok');
+      if (!state.example) setFlow(3, 'done', '저장 완료 · .zip 지우고 열기');
+    } catch (e) {
+      if (e && e.code === 'declined') log('저장을 취소했습니다.', 'warn');
+      else log('이 화면에서는 저장할 수 없습니다: ' + ((e && e.message) || e), 'err');
+    }
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/hwp+zip' }));
+  a.download = base + '.hwpx';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  log(`“${base}.hwpx”를 내려받았습니다.`, 'ok');
+  if (!state.example) setFlow(3, 'done', '내려받기 완료');
+}
+
+/* ── 예시 양식(처음 화면) ── */
+const SAMPLE = {"page":{"widthMm":210,"heightMm":297},"blocks":[
+ {"type":"paragraph","yMm":22,"xMm":20,"widthMm":170,"align":"center","fontSizePt":18,"bold":true,"font":"headline","text":"2026학년도 2학기 학부모 상담 신청서"},
+ {"type":"paragraph","yMm":36,"xMm":20,"widthMm":170,"align":"left","fontSizePt":10.5,"font":"serif","lineSpacing":170,"text":"학부모님, 안녕하십니까? 자녀의 학교생활과 진로에 대해 담임교사와 이야기 나눌 수 있도록\n상담 주간을 운영합니다. 아래 신청서를 작성하여 10월 30일(금)까지 담임교사에게 제출해 주십시오."},
+ {"type":"table","yMm":52,"xMm":20,"colWidthsMm":[28,32,22,30,22,36],"rowHeightsMm":[10,10,10,22,10],"cells":[
+  {"row":0,"col":0,"rowSpan":2,"text":"학생","align":"center","bold":true,"bg":"#E7ECEF","fontSizePt":10},
+  {"row":0,"col":1,"text":"학년 / 반","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":0,"col":2,"text":"   학년    반","colSpan":2,"align":"center"},
+  {"row":0,"col":4,"text":"번호","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":0,"col":5,"text":"","align":"center"},
+  {"row":1,"col":1,"text":"성명","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":1,"col":2,"colSpan":4,"text":""},
+  {"row":2,"col":0,"text":"희망 방법","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":2,"col":1,"colSpan":5,"text":"□ 대면     □ 전화     □ 화상","align":"left"},
+  {"row":3,"col":0,"text":"상담 내용","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":3,"col":1,"colSpan":5,"text":"","vAlign":"top"},
+  {"row":4,"col":0,"text":"희망 일시","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":4,"col":1,"colSpan":3,"text":"  월    일 (   )     시","align":"center"},
+  {"row":4,"col":4,"text":"연락처","align":"center","bold":true,"bg":"#E7ECEF"},
+  {"row":4,"col":5,"text":""}]},
+ {"type":"paragraph","yMm":130,"xMm":20,"widthMm":170,"align":"right","fontSizePt":11,"font":"serif","text":"2026년      월      일"},
+ {"type":"paragraph","yMm":142,"xMm":20,"widthMm":170,"align":"right","fontSizePt":11,"font":"serif","text":"보호자            (서명 또는 인)"},
+ {"type":"paragraph","yMm":160,"xMm":20,"widthMm":170,"align":"center","fontSizePt":14,"bold":true,"font":"serif","text":"원묵고등학교장 귀하"}
+]};
+state = { title: '학부모 상담 신청서', example: true, pages: [{ orig: null, layout: E.aiToLayout(SAMPLE), method: 'ai' }], notices: [], output: { kind: 'build' }, cur: 0 };
+render();
+})();
+</script>
