@@ -539,8 +539,30 @@
     return lines;
   }
 
+  /** 쪽 번호로 보이는 줄(예: "- 7 -", "12")을 본문에서 떼어 내 자동 쪽 번호로 바꿀 정보로 돌려줌 */
+  const PN_RE = /^\s*([-–—]\s*)?(\d{1,4})(\s*[-–—])?\s*$/;
+  function takePageNumber(blocks, W, H) {
+    const textOf = (b) => b.runs.map((r) => r.t).join('');
+    const cands = blocks.filter((b) => b.kind === 'p' && (b.top > H * 0.84 || b.top + b.size < H * 0.09) && PN_RE.test(textOf(b)));
+    if (!cands.length) return null;
+    const bottoms = cands.filter((b) => b.top > H / 2);
+    const pick = bottoms.length ? bottoms.reduce((a, b) => (b.top > a.top ? b : a)) : cands.reduce((a, b) => (b.top < a.top ? b : a));
+    const m = textOf(pick).match(PN_RE);
+    const cx = pick.alignHint === 'CENTER' ? W / 2 : (pick.x1 + pick.x2) / 2;
+    const side = Math.abs(cx - W / 2) < W * 0.08 ? 'CENTER' : cx < W / 2 ? 'LEFT' : 'RIGHT';
+    const edge = pick.top > H / 2 ? 'BOTTOM' : 'TOP';
+    blocks.splice(blocks.indexOf(pick), 1);
+    const r = pick.runs.find((x) => x.t.trim()) || pick.runs[0] || {};
+    return {
+      num: +m[2], pos: `${edge}_${side}`, edge, sideChar: m[1] || m[3] ? '-' : '',
+      top: pick.top, bottom: pick.top + pick.size * 1.15, x1: pick.x1, x2: pick.x2,
+      size: pick.size, font: r.font, bold: !!r.bold, text: textOf(pick).trim(),
+    };
+  }
+
   /** 페이지 여백 계산 */
   function finalizeLayout({ W, H, blocks }) {
+    const pageNum = takePageNumber(blocks, W, H);
     let minX = W, maxX = 0, minY = H, maxY = 0;
     for (const b of blocks) {
       minX = Math.min(minX, b.x1); maxX = Math.max(maxX, b.x2);
@@ -551,7 +573,7 @@
     const ml = clamp(minX - 1, 8, W / 3), mr = clamp(W - maxX - 1, 8, W / 3);
     const mt = clamp(minY - 1, 8, H / 3);
     const mb = clamp(Math.min(H - maxY, 42), 8, H / 3);
-    return { W, H, margin: { l: ml, r: mr, t: mt, b: mb }, blocks };
+    return { W, H, margin: { l: ml, r: mr, t: mt, b: mb }, blocks, pageNum };
   }
 
   /* ============================================================
@@ -737,10 +759,29 @@
     if (!layouts.length) Object.assign(mg, first.margin);
     const landscape = first.W > first.H;
     const pw = r0(Math.min(first.W, first.H) * PT2HU), ph = r0(Math.max(first.W, first.H) * PT2HU);
+    // 쪽 번호: 원본의 쪽 번호 줄을 한글 "쪽 번호 매기기"로 바꾸고, 그 자리를 머리말/꼬리말 영역으로 비워 둠
+    const pnIdx = layouts.findIndex((L) => L.pageNum);
+    const pn = pnIdx >= 0 ? layouts[pnIdx].pageNum : null;
+    let top = mg.t, bottom = mg.b, headerH = 0, footerH = 0, startNum = 0;
+    if (pn) {
+      const h = pn.bottom - pn.top;
+      if (pn.edge === 'BOTTOM') {
+        bottom = Math.max(5, first.H - pn.bottom - 1);
+        footerH = Math.max(h + 2, first.H - bottom - (pn.top - 1));
+      } else {
+        top = Math.max(5, pn.top - 1);
+        headerH = Math.max(h + 2, mg.t - top);
+      }
+      startNum = Math.max(0, pn.num - pnIdx);
+    }
     let secPr = skeletonSec.match(/<hp:secPr[\s\S]*?<\/hp:secPr><hp:ctrl>[\s\S]*?<\/hp:ctrl>/)[0];
     secPr = secPr.replace(/<hp:pagePr [^>]*>/, `<hp:pagePr landscape="${landscape ? 'NARROWLY' : 'WIDELY'}" width="${pw}" height="${ph}" gutterType="LEFT_ONLY">`)
       .replace(/<hp:margin header="\d+" footer="\d+" gutter="\d+" left="\d+" right="\d+" top="\d+" bottom="\d+"\/>/,
-        `<hp:margin header="0" footer="0" gutter="0" left="${r0(mg.l * PT2HU)}" right="${r0(mg.r * PT2HU)}" top="${r0(mg.t * PT2HU)}" bottom="${r0(mg.b * PT2HU)}"/>`);
+        `<hp:margin header="${r0(headerH * PT2HU)}" footer="${r0(footerH * PT2HU)}" gutter="0" left="${r0(mg.l * PT2HU)}" right="${r0(mg.r * PT2HU)}" top="${r0(top * PT2HU)}" bottom="${r0(bottom * PT2HU)}"/>`)
+      .replace(/<hp:startNum pageStartsOn="(\w+)" page="\d+"/, `<hp:startNum pageStartsOn="$1" page="${startNum}"`);
+    if (pn) secPr += `<hp:ctrl><hp:pageNum pos="${pn.pos}" formatType="DIGIT" sideChar="${pn.sideChar}"/></hp:ctrl>`;
+    // 본문 위쪽 시작점: 머리말 영역 아래
+    const bodyTop = top + headerH;
     const rootOpen = skeletonSec.match(/<hs:sec [^>]*>/)[0];
     const contentW = first.W - mg.l - mg.r;
     let tblId = 1000000001, z = 0;
@@ -774,7 +815,8 @@
 
     const paras = [];
     layouts.forEach((L, pi) => {
-      let cursor = mg.t; // 다음 블록이 놓일 y(pt)
+      let cursor = bodyTop; // 다음 블록이 놓일 y(pt)
+      const firstPara = paras.length;
       const cl = mg.l, cr = L.W - mg.r, cc = (cl + cr) / 2;
       L.blocks.forEach((b, bi) => {
         const prev = Math.max(0, b.top - cursor) * PT2HU;
@@ -805,6 +847,8 @@
         const pp = hb.paraPr({});
         paras.push({ pp, pageBreak: pi > 0 ? 1 : 0, inner: `<hp:run charPrIDRef="0"/>` });
       }
+      // 원본에 쪽 번호가 없던 쪽은 이 쪽만 감추기
+      if (pn && !L.pageNum) paras[firstPara].inner = `<hp:run charPrIDRef="0"><hp:ctrl><hp:pageHiding hideHeader="0" hideFooter="0" hideMasterPage="0" hideBorder="0" hideFill="0" hidePageNum="1"/></hp:ctrl></hp:run>` + paras[firstPara].inner;
     });
     if (!paras.length) paras.push({ pp: 0, pageBreak: 0, inner: '<hp:run charPrIDRef="0"/>' });
     void contentW;
@@ -859,7 +903,9 @@
   function statsOf(layouts) {
     let tables = 0, cells = 0, paras = 0;
     for (const L of layouts) for (const b of L.blocks) { if (b.kind === 't') { tables++; cells += b.cells.length; } else paras++; }
-    return { pages: layouts.length, tables, cells, paras };
+    const nums = layouts.map((L, i) => (L.pageNum ? L.pageNum.num - i : null)).filter((v) => v !== null);
+    const pageNum = nums.length ? { start: Math.max(1, nums[0]), pages: nums.length, consistent: nums.every((v) => v === nums[0]), text: layouts.find((L) => L.pageNum).pageNum.text } : null;
+    return { pages: layouts.length, tables, cells, paras, pageNum };
   }
 
   /* ============================================================

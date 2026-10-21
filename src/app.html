@@ -124,6 +124,8 @@ button{font:inherit;cursor:pointer;border-radius:6px}
 .sheet table{position:absolute;border-collapse:collapse;table-layout:fixed}
 .sheet td{padding:0 .4%;overflow:hidden;line-height:1.15;white-space:pre-wrap;word-break:break-all}
 .sheet .m{margin:0;white-space:pre-wrap}
+.sheet .pn-auto{position:absolute;line-height:1.1;padding:0 4px;outline:1px dashed #1E5C7A;color:#1E5C7A;white-space:pre;border-radius:2px}
+.pn-chip{color:var(--accent)}
 .placeholder{display:grid;place-items:center;text-align:center;color:var(--ink-2);font-size:13.5px;background:var(--sheet);border:1px dashed var(--rule);aspect-ratio:210/297;padding:24px;border-radius:2px}
 #notices{display:flex;flex-direction:column;gap:8px}
 #notices:empty{display:none}
@@ -234,7 +236,7 @@ button{font:inherit;cursor:pointer;border-radius:6px}
       </div>
 
       <section class="kinds" aria-label="파일별 처리 방법">
-        <div class="kind"><span class="k">글자 있는 PDF</span><span class="r rule">좌표 복원</span><span class="v">병합·선·점선·대각선·색·자간까지 그대로</span></div>
+        <div class="kind"><span class="k">글자 있는 PDF</span><span class="r rule">좌표 복원</span><span class="v">병합·선·점선·대각선·색·자간까지 그대로, 쪽 번호는 자동 매김으로</span></div>
         <div class="kind"><span class="k">스캔 PDF · 사진</span><span class="r ai">AI 인식</span><span class="v">AI가 표와 글자를 읽어 다시 짭니다</span></div>
         <div class="kind"><span class="k">잠긴 hwpx</span><span class="r unlock">잠금 해제</span><span class="v">서식은 그대로, 잠금만 풉니다</span></div>
         <div class="kind"><span class="k">배포용 문서 · hwp</span><span class="r pdf">PDF로 인쇄 후 올리기</span><span class="v">한글에서 인쇄 → PDF로 저장</span></div>
@@ -484,6 +486,10 @@ async function convertPdf(file){
     } else pages.push({ orig: canvas, layout: ruleLayout || E.aiToLayout({ blocks: [] }), method: 'none' });
   }
   const notices = [];
+  const pst = E.statsOf(pages.map((p) => p.layout).filter(Boolean)).pageNum;
+  if (pst) notices.push({ cls: 'ok', html: pst.consistent
+    ? `<p>원본의 쪽 번호(“${pst.text}” 꼴)를 한글 <b>쪽 번호 매기기</b>로 바꿨습니다. 쪽이 늘거나 줄어도 번호가 저절로 맞춰집니다.</p>`
+    : `<p>원본의 쪽 번호를 한글 <b>쪽 번호 매기기</b>로 바꿨습니다. 고른 쪽들의 번호가 이어지지 않아 ${pst.start}쪽부터 차례로 매깁니다.</p>` });
   if (pages.some((p) => p.method === 'ai')) notices.push({ cls: '', html: '<p>AI가 읽은 페이지는 글자나 칸 나눔이 원본과 다를 수 있습니다. 한글에서 열어 한 번 대조해 주세요.</p>' });
   finish({ title: file.name.replace(/\.[^.]+$/, ''), pages, notices, output: { kind: 'build' } });
 }
@@ -578,7 +584,7 @@ function render(){
   const layouts = s.pages.map((p) => p.layout).filter(Boolean);
   const st = E.statsOf(layouts);
   $('stats').innerHTML = s.unlock || !layouts.length ? '' :
-    `<span><b>${st.pages}</b>쪽</span><span><b>${st.tables}</b>개 표</span><span><b>${st.cells}</b>칸</span><span><b>${st.paras}</b>개 문단</span>`;
+    `<span><b>${st.pages}</b>쪽</span><span><b>${st.tables}</b>개 표</span><span><b>${st.cells}</b>칸</span><span><b>${st.paras}</b>개 문단</span>${st.pageNum ? `<span class="pn-chip">자동 쪽 번호 <b>${st.pageNum.start}</b>부터</span>` : ''}`;
   $('notices').replaceChildren(...(s.notices || []).map((n) => { const d = document.createElement('div'); d.className = 'notice ' + (n.cls || ''); d.innerHTML = n.html; return d; }));
   const pg = $('pages');
   pg.hidden = s.pages.length < 2;
@@ -615,6 +621,17 @@ function renderSheet(L){
     const fontCss = (f) => /바탕|명조|궁서/.test(f) ? '"Nanum Myeongjo","Noto Serif KR",serif' : /헤드라인/.test(f) ? '"IBM Plex Sans KR",sans-serif' : '"IBM Plex Sans KR","Malgun Gothic",sans-serif';
     const runSpan = (r) => { const s = document.createElement('span'); s.textContent = r.t; s.style.fontSize = (r.size * k) + 'px'; s.style.fontFamily = fontCss(r.font || ''); if (r.bold || /헤드라인/.test(r.font || '')) s.style.fontWeight = '700'; if (r.italic) s.style.fontStyle = 'italic'; if (r.underline) s.style.textDecoration = 'underline'; if (r.color && r.color !== '#000000') s.style.color = r.color; if (r.sp) s.style.letterSpacing = (r.sp / 100 * r.size * k) + 'px'; return s; };
     const cl = L.margin.l, cr = L.W - L.margin.r;
+    if (L.pageNum) {
+      const pn = L.pageNum, d = document.createElement('div');
+      d.className = 'pn-auto'; d.title = '한글 자동 쪽 번호';
+      d.textContent = pn.text;
+      d.style.top = (pn.top * k) + 'px'; d.style.fontSize = (pn.size * k) + 'px';
+      const side = pn.pos.split('_')[1];
+      if (side === 'CENTER') { d.style.left = '50%'; d.style.transform = 'translateX(-50%)'; }
+      else if (side === 'LEFT') d.style.left = (pn.x1 * k) + 'px';
+      else d.style.right = ((L.W - pn.x2) * k) + 'px';
+      sheet.appendChild(d);
+    }
     for (const b of L.blocks) {
       if (b.kind === 'p') {
         const d = document.createElement('div'); d.className = 'p';
